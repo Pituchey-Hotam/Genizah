@@ -162,6 +162,11 @@
     <Compile Include="CensorControls.Designer.cs">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </Compile>
+    <Compile Include="CensorSettingsDialog.cs" />
+    <Compile Include="CensorSettingsDialog.Designer.cs">
+      <DependentUpon>CensorSettingsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NameInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -177,6 +182,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="app.config" />
     <None Include="Genizah_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -185,6 +191,7 @@
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>

@@ -12,7 +12,7 @@ namespace Genizah.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.6.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -20,6 +20,102 @@ namespace Genizah.Properties {
         public static Settings Default {
             get {
                 return defaultInstance;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_havaya {
+            get {
+                return ((string)(this["name_replacement_havaya"]));
+            }
+            set {
+                this["name_replacement_havaya"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_adnut {
+            get {
+                return ((string)(this["name_replacement_adnut"]));
+            }
+            set {
+                this["name_replacement_adnut"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_el {
+            get {
+                return ((string)(this["name_replacement_el"]));
+            }
+            set {
+                this["name_replacement_el"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_eloha {
+            get {
+                return ((string)(this["name_replacement_eloha"]));
+            }
+            set {
+                this["name_replacement_eloha"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_elohim {
+            get {
+                return ((string)(this["name_replacement_elohim"]));
+            }
+            set {
+                this["name_replacement_elohim"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_ehye {
+            get {
+                return ((string)(this["name_replacement_ehye"]));
+            }
+            set {
+                this["name_replacement_ehye"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_shaday {
+            get {
+                return ((string)(this["name_replacement_shaday"]));
+            }
+            set {
+                this["name_replacement_shaday"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string name_replacement_tsvaot {
+            get {
+                return ((string)(this["name_replacement_tsvaot"]));
+            }
+            set {
+                this["name_replacement_tsvaot"] = value;
             }
         }
     }

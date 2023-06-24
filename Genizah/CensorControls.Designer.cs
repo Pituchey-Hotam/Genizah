@@ -35,13 +35,9 @@
         private void InitializeComponent()
         {
             Microsoft.Office.Tools.Ribbon.RibbonDialogLauncher ribbonDialogLauncherImpl1 = this.Factory.CreateRibbonDialogLauncher();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl1 = this.Factory.CreateRibbonDropDownItem();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl2 = this.Factory.CreateRibbonDropDownItem();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl3 = this.Factory.CreateRibbonDropDownItem();
             this.tab1 = this.Factory.CreateRibbonTab();
             this.genizahGroup = this.Factory.CreateRibbonGroup();
             this.CensorNamesBtn = this.Factory.CreateRibbonButton();
-            this.CensorStyle = this.Factory.CreateRibbonComboBox();
             this.tab1.SuspendLayout();
             this.genizahGroup.SuspendLayout();
             this.SuspendLayout();
@@ -56,32 +52,20 @@
             // 
             // genizahGroup
             // 
-            ribbonDialogLauncherImpl1.Enabled = false;
+            ribbonDialogLauncherImpl1.ScreenTip = "הגדרות צנזור";
             this.genizahGroup.DialogLauncher = ribbonDialogLauncherImpl1;
             this.genizahGroup.Items.Add(this.CensorNamesBtn);
-            this.genizahGroup.Items.Add(this.CensorStyle);
             this.genizahGroup.Label = "גניזה";
             this.genizahGroup.Name = "genizahGroup";
+            this.genizahGroup.DialogLauncherClick += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.GenizahGroup_DialogLauncherClick);
             // 
             // CensorNamesBtn
             // 
+            this.CensorNamesBtn.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
             this.CensorNamesBtn.Label = "צנזר שמות";
             this.CensorNamesBtn.Name = "CensorNamesBtn";
             this.CensorNamesBtn.ShowImage = true;
             this.CensorNamesBtn.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.CensorNamesBtn_Click);
-            // 
-            // CensorStyle
-            // 
-            ribbonDropDownItemImpl1.Label = "-להים";
-            ribbonDropDownItemImpl2.Label = "אלקים";
-            ribbonDropDownItemImpl3.Label = "א-להים";
-            this.CensorStyle.Items.Add(ribbonDropDownItemImpl1);
-            this.CensorStyle.Items.Add(ribbonDropDownItemImpl2);
-            this.CensorStyle.Items.Add(ribbonDropDownItemImpl3);
-            this.CensorStyle.Label = "סגנון צנזור";
-            this.CensorStyle.Name = "CensorStyle";
-            this.CensorStyle.ShowLabel = false;
-            this.CensorStyle.Text = null;
             // 
             // CensorControls
             // 
@@ -102,7 +86,6 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonTab tab1;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup genizahGroup;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton CensorNamesBtn;
-        internal Microsoft.Office.Tools.Ribbon.RibbonComboBox CensorStyle;
     }
 
     partial class ThisRibbonCollection

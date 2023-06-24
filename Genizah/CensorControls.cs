@@ -17,5 +17,11 @@ namespace Genizah
         {
             Globals.ThisAddIn.CensorNames(Globals.ThisAddIn.Application.ActiveDocument);
         }
+
+        private void GenizahGroup_DialogLauncherClick(object sender, RibbonControlEventArgs e)
+        {
+            CensorSettingsDialog dialog = new CensorSettingsDialog();
+            dialog.ShowDialog();
+        }
     }
 }
