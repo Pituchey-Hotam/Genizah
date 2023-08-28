@@ -111,20 +111,23 @@ namespace Genizah
             {
                 while (findObject.Execute())
                 {
-                    var originalText = range.Text;
-                    range.Text = replacement;
+                    var rangeDuplicate = range.Duplicate;
+                    var containedWords = this.Application.ActiveDocument.Range(rangeDuplicate.Words.First.Start, rangeDuplicate.Words.Last.End);
+                    var originalText = target;
+                    rangeDuplicate.Text = replacement;
                     var bookmarkId = originalText + Guid.NewGuid().ToString().Split('-').First();
-                    Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, range);
-                    range.HighlightColorIndex = WdColorIndex.wdYellow;
+                    Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, rangeDuplicate);
+                    rangeDuplicate.HighlightColorIndex = WdColorIndex.wdYellow;
                     SearchResult result = new SearchResult()
                     {
                         Bookmark = bookmark,
-                        rangeStart = range.Start,
-                        rangeEnd = range.End,
+                        rangeStart = rangeDuplicate.Start,
+                        rangeEnd = rangeDuplicate.End,
                         OriginalText = originalText,
                         ReplacementText = replacement
                     };
                     this.ResultsList.Add(result);
+                    range.Start = containedWords.End + 1;
                 }
             }
 
