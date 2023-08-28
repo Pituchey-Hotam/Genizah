@@ -10,6 +10,8 @@ namespace Genizah
         public ResultsControl()
         {
             InitializeComponent();
+            this.flowLayoutPanel1.Dock = DockStyle.Fill;
+            this.flowLayoutPanel1.AutoScroll = true;
         }
 
         public void UpdateSearchResults(List<SearchResult> results)
