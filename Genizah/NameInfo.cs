@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Genizah
@@ -19,7 +20,7 @@ namespace Genizah
         public string DisplayName { get; }
 
         /// Pattern to be used for searching for the name
-        public string FindPattern { get; }
+        public Regex FindPattern { get; }
 
         /// Default options for replacing the name
         public string[] ReplacementOptions { get; }
@@ -28,7 +29,8 @@ namespace Genizah
         {
             Id = id;
             DisplayName = displayName;
-            FindPattern = findPattern;
+            string regex = @"\b" + string.Join(DIACRITICS_PATTERN, findPattern.ToCharArray()) + @"\b";
+            FindPattern = new Regex(regex, RegexOptions.Compiled);
             ReplacementOptions = replacementOptions;
         }
 
@@ -49,6 +51,8 @@ namespace Genizah
         {
             Properties.Settings.Default[SettingsKey] = replacement;
         }
+
+        public static string DIACRITICS_PATTERN = "[\u0591-\u05c2]*";
 
         /// <summary>
         /// List of holy names to be handled by the add-in

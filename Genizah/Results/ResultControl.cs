@@ -2,6 +2,7 @@
 using System.Windows.Forms;
 using Genizah.Results;
 using Microsoft.Office.Interop.Word;
+using Application = Microsoft.Office.Interop.Word.Application;
 
 namespace Genizah
 {

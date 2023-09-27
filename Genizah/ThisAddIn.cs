@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Genizah.Results;
 using Microsoft.Office.Interop.Word;
@@ -30,7 +31,7 @@ namespace Genizah
         void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
         {
             // Do not warn if the document contains no names
-            if (FindNames(doc))
+            if (ContainsNames(doc))
             {
                 DialogResult dialogResult = MessageBox.Show("מסמך זה מכיל שמות שאינם נמחקים וטעון גניזה. האם תרצה לצנזר שמות ה' לפני הדפסה?",
                                             "צנזור גניזה",
@@ -59,11 +60,12 @@ namespace Genizah
         /// Searches for holy names in a document
         /// </summary>
         /// <returns>true if the document contains any names</returns>
-        public bool FindNames(Word.Document doc)
+        public bool ContainsNames(Word.Document doc)
         {
+            string text = doc.Content.Text;
             foreach (var name in NameInfo.names)
             {
-                if (FindReplaceInDocument(doc, name.FindPattern, "", Word.WdReplace.wdReplaceNone))
+                if (name.FindPattern.Match(doc.Content.Text).Success)
                 {
                     return true;
                 }
@@ -79,59 +81,46 @@ namespace Genizah
             this.ResultsList = new List<SearchResult>();
             foreach (var name in NameInfo.names)
             {
-                FindReplaceInDocument(doc, name.FindPattern, name.getSelectedReplacement());
+                ReplaceName(doc, name);
             }
             resultsControl.UpdateSearchResults(this.ResultsList);
             resultsPane.Visible = true;
         }
 
-        private bool FindReplaceInDocument(Word.Document doc, string target, string replacement, Word.WdReplace replaceMode = Word.WdReplace.wdReplaceAll)
+        private void ReplaceName(Document doc, NameInfo name)
         {
-            Word.Range range = doc.Content;
-            Word.Find findObject = range.Find;
-
-            findObject.ClearFormatting();
-            findObject.Replacement.ClearFormatting();
-            findObject.Text = target;
-            findObject.Forward = true;
-            findObject.Wrap = WdFindWrap.wdFindStop;
-            findObject.MatchWholeWord = false;
-            findObject.MatchWildcards = false;
-            findObject.MatchSoundsLike = false;
-            findObject.MatchAllWordForms = false;
-            findObject.MatchDiacritics = false;
-            findObject.MatchControl = false;
-            findObject.IgnorePunct = true;
-
-            if (replaceMode == WdReplace.wdReplaceNone)
+            while (true)
             {
-                findObject.Execute(Format: ref missing, Replace: replaceMode);
-            }
-            else
-            {
-                while (findObject.Execute())
+                // Fetch document contents
+                Word.Range range = doc.Content;
+                string text = range.Text;
+
+                // Find matches with Regular Expression
+                Match match = name.FindPattern.Match(text);
+                if (!match.Success) return;
+
+                // A bit of a hack:
+                // Word has hidden characters that handle formatting, links etc. These characters are skipped in the string returned by range.Text.
+                // Because of this, the range indices don't neccisarily match the range indices (ie. range.Text.Length != range.End).
+                // To work around this, we use range.Characters, whose indices match range.Text, to convert text indices to range indices.
+                var chars = range.Characters;
+                var matchRange = doc.Range(chars[match.Index].End, chars[match.Index + match.Length].End);
+
+                var originalText = matchRange.Text;
+                matchRange.Text = name.getSelectedReplacement();
+                var bookmarkId = '_' + originalText + Guid.NewGuid().ToString().Split('-').First();
+                Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, matchRange);
+                matchRange.HighlightColorIndex = WdColorIndex.wdYellow;
+                SearchResult result = new SearchResult()
                 {
-                    var rangeDuplicate = range.Duplicate;
-                    var containedWords = this.Application.ActiveDocument.Range(rangeDuplicate.Words.First.Start, rangeDuplicate.Words.Last.End);
-                    var originalText = target;
-                    rangeDuplicate.Text = replacement;
-                    var bookmarkId = originalText + Guid.NewGuid().ToString().Split('-').First();
-                    Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, rangeDuplicate);
-                    rangeDuplicate.HighlightColorIndex = WdColorIndex.wdYellow;
-                    SearchResult result = new SearchResult()
-                    {
-                        Bookmark = bookmark,
-                        rangeStart = rangeDuplicate.Start,
-                        rangeEnd = rangeDuplicate.End,
-                        OriginalText = originalText,
-                        ReplacementText = replacement
-                    };
-                    this.ResultsList.Add(result);
-                    range.Start = containedWords.End + 1;
-                }
+                    Bookmark = bookmark,
+                    rangeStart = matchRange.Start,
+                    rangeEnd = matchRange.End,
+                    OriginalText = originalText,
+                    ReplacementText = name.getSelectedReplacement(),
+                };
+                this.ResultsList.Add(result);
             }
-
-            return findObject.Found;
         }
 
         #region VSTO generated code
