@@ -62,6 +62,7 @@
             // CensorNamesBtn
             // 
             this.CensorNamesBtn.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.CensorNamesBtn.Image = global::Genizah.Properties.Resources.imgb32;
             this.CensorNamesBtn.Label = "צנזר שמות";
             this.CensorNamesBtn.Name = "CensorNamesBtn";
             this.CensorNamesBtn.ShowImage = true;

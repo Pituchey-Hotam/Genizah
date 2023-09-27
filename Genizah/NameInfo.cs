@@ -51,18 +51,18 @@ namespace Genizah
         }
 
         /// <summary>
-        /// List of holy names to be handled by the add-in
+        /// List of holy names to be handled by the add-in, sorted by length.
         /// </summary>
         public static NameInfo[] names =
         {
+            new NameInfo("tsvaot", "צבאות", "צבאות", new string[] { "צב-ות", "צב-אות" }),
+            new NameInfo("elohim", "אלהים", "אלהים", new string[] { "-להים", "א-להים", "אלקים" }),
             new NameInfo("havaya", "שם הויה", "יהוה", new string[] { "ה'", "ד'" }),
             new NameInfo("adnut", "אדני", "אדני", new string[] { "-דני", "א-דני" }),
-            new NameInfo("el", "אל", "אל", new string[] { "-ל", "קל" }),
             new NameInfo("eloha", "אלוה", "אלוה", new string[] { "-לוה", "א-לוה" }),
-            new NameInfo("elohim", "אלהים", "אלהים", new string[] { "-להים", "א-להים", "אלקים" }),
             new NameInfo("ehye", "אהיה", "אהיה", new string[] { "-היה", "א-היה"}),
             new NameInfo("shaday", "שדי", "שדי", new string[] { "ש-די" }),
-            new NameInfo("tsvaot", "צבאות", "צבאות", new string[] { "צב-ות", "צב-אות" })
+            new NameInfo("el", "אל", "אל", new string[] { "-ל", "א-ל", "קל" })
         };
     }
 
