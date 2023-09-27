@@ -1,21 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
-using Word = Microsoft.Office.Interop.Word;
-using Office = Microsoft.Office.Core;
-using Microsoft.Office.Tools.Word;
 using System.Windows.Forms;
+using Genizah.Results;
 using Microsoft.Office.Interop.Word;
+using Microsoft.Office.Tools;
+using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah
 {
     public partial class ThisAddIn
     {
+        public List<SearchResult> ResultsList = new List<SearchResult>();
+        public ResultsControl resultsControl = new ResultsControl();
+        public CustomTaskPane resultsPane;
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
+            resultsPane = this.CustomTaskPanes.Add(resultsControl, "תוצאות");
         }
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
@@ -42,6 +44,15 @@ namespace Genizah
                     cancel = true;
                 }
             }
+
+            // Remove Results HighLights
+            if (ResultsList.Count > 0)
+            {
+                foreach (var result in ResultsList)
+                {
+                    result.Bookmark.Range.HighlightColorIndex = 0;
+                }
+            }
         }
 
         /// <summary>
@@ -65,10 +76,13 @@ namespace Genizah
         /// </summary>
         public void CensorNames(Word.Document doc)
         {
+            this.ResultsList = new List<SearchResult>();
             foreach (var name in NameInfo.names)
             {
                 FindReplaceInDocument(doc, name.FindPattern, name.getSelectedReplacement());
             }
+            resultsControl.UpdateSearchResults(this.ResultsList);
+            resultsPane.Visible = true;
         }
 
         private bool FindReplaceInDocument(Word.Document doc, string target, string replacement, Word.WdReplace replaceMode = Word.WdReplace.wdReplaceAll)
@@ -78,23 +92,44 @@ namespace Genizah
 
             findObject.ClearFormatting();
             findObject.Replacement.ClearFormatting();
+            findObject.Text = target;
+            findObject.Forward = true;
+            findObject.Wrap = WdFindWrap.wdFindStop;
+            findObject.MatchWholeWord = false;
+            findObject.MatchWildcards = false;
+            findObject.MatchSoundsLike = false;
+            findObject.MatchAllWordForms = false;
+            findObject.MatchDiacritics = false;
+            findObject.MatchControl = false;
+            findObject.IgnorePunct = true;
 
-            findObject.Execute(
-                FindText: target,
-                MatchCase: true,
-                MatchWholeWord: false,
-                MatchWildcards: false,
-                MatchSoundsLike: false,
-                MatchAllWordForms: false,
-                Forward: true,
-                Wrap: WdFindWrap.wdFindStop,
-                Format: ref missing,
-                ReplaceWith: replacement,
-                Replace: replaceMode,
-                MatchKashida: false,
-                MatchDiacritics: false,
-                MatchAlefHamza: false,
-                MatchControl: false);
+            if (replaceMode == WdReplace.wdReplaceNone)
+            {
+                findObject.Execute(Format: ref missing, Replace: replaceMode);
+            }
+            else
+            {
+                while (findObject.Execute())
+                {
+                    var rangeDuplicate = range.Duplicate;
+                    var containedWords = this.Application.ActiveDocument.Range(rangeDuplicate.Words.First.Start, rangeDuplicate.Words.Last.End);
+                    var originalText = target;
+                    rangeDuplicate.Text = replacement;
+                    var bookmarkId = originalText + Guid.NewGuid().ToString().Split('-').First();
+                    Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, rangeDuplicate);
+                    rangeDuplicate.HighlightColorIndex = WdColorIndex.wdYellow;
+                    SearchResult result = new SearchResult()
+                    {
+                        Bookmark = bookmark,
+                        rangeStart = rangeDuplicate.Start,
+                        rangeEnd = rangeDuplicate.End,
+                        OriginalText = originalText,
+                        ReplacementText = replacement
+                    };
+                    this.ResultsList.Add(result);
+                    range.Start = containedWords.End + 1;
+                }
+            }
 
             return findObject.Found;
         }
@@ -110,7 +145,7 @@ namespace Genizah
             this.Startup += new System.EventHandler(ThisAddIn_Startup);
             this.Shutdown += new System.EventHandler(ThisAddIn_Shutdown);
         }
-        
+
         #endregion
     }
 }

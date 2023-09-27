@@ -166,12 +166,31 @@
     <Compile Include="CensorSettingsDialog.Designer.cs">
       <DependentUpon>CensorSettingsDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Results\ResultControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Results\ResultControl.Designer.cs">
+      <DependentUpon>ResultControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Results\ResultsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Results\ResultsControl.Designer.cs">
+      <DependentUpon>ResultsControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Results\SearchResult.cs" />
     <Compile Include="NameInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Include="CensorControls.resx">
       <DependentUpon>CensorControls.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Results\ResultControl.resx">
+      <DependentUpon>ResultControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Results\ResultsControl.resx">
+      <DependentUpon>ResultsControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
