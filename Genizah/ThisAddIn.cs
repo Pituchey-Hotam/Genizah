@@ -79,13 +79,23 @@ namespace Genizah
         public void CensorNames(Word.Document doc)
         {
             this.ResultsList = new List<SearchResult>();
-            foreach (var name in NameInfo.names)
-            {
-                ReplaceName(doc, name);
+            Application.UndoRecord.StartCustomRecord("צנזור שמות לגניזה");
+            Application.ScreenUpdating = false;
+            try { 
+                foreach (var name in NameInfo.names)
+                {
+                    ReplaceName(doc, name);
+                }
+
+                resultsControl.UpdateSearchResults(this.ResultsList);
+                resultsPane.Visible = true;
             }
-            resultsControl.UpdateSearchResults(this.ResultsList);
-            resultsPane.Visible = true;
-        }
+            finally
+            {
+                Application.ScreenUpdating = true;
+                Application.UndoRecord.EndCustomRecord();
+            }
+}
 
         private void ReplaceName(Document doc, NameInfo name)
         {
@@ -104,19 +114,19 @@ namespace Genizah
                 // Because of this, the range indices don't neccisarily match the range indices (ie. range.Text.Length != range.End).
                 // To work around this, we use range.Characters, whose indices match range.Text, to convert text indices to range indices.
                 var chars = range.Characters;
-                var matchRange = doc.Range(chars[match.Index].End, chars[match.Index + match.Length].End);
+                var matchRange = doc.Range(chars[match.Index+1].Start, chars[match.Index + match.Length].End);
 
                 var originalText = matchRange.Text;
+                var originalHighlight = matchRange.HighlightColorIndex;
                 matchRange.Text = name.getSelectedReplacement();
                 var bookmarkId = '_' + originalText + Guid.NewGuid().ToString().Split('-').First();
-                Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, matchRange);
                 matchRange.HighlightColorIndex = WdColorIndex.wdYellow;
+                Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, matchRange);
                 SearchResult result = new SearchResult()
                 {
                     Bookmark = bookmark,
-                    rangeStart = matchRange.Start,
-                    rangeEnd = matchRange.End,
                     OriginalText = originalText,
+                    OriginalHighlight = originalHighlight,
                     ReplacementText = name.getSelectedReplacement(),
                 };
                 this.ResultsList.Add(result);

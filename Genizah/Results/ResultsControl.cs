@@ -16,7 +16,7 @@ namespace Genizah
 
         public void UpdateSearchResults(List<SearchResult> results)
         {
-            foreach (var result in results.OrderBy(x => x.rangeStart))
+            foreach (var result in results.OrderBy(x => x.Bookmark.Start))
             {
                 ResultControl resultControl = new ResultControl(result);
                 resultControl.RemoveResultControlHandler += (sender, e) =>

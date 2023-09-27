@@ -7,7 +7,6 @@ namespace Genizah.Results
         public string OriginalText { get; set; }
         public string ReplacementText { get; set; }
         public Bookmark Bookmark { get; set; }
-        public int rangeStart { get; set; }
-        public int rangeEnd { get; set; }
+        public WdColorIndex OriginalHighlight { get; set; }
     }
 }
