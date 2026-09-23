@@ -1,0 +1,17 @@
+{
+ "about": "The shipping model's provenance. The .onnx file is not in git; copy it here from the fit directory. Regenerate this file and vocab.txt with tools/make_vectors.py.",
+ "fit_dir": "classifier/scratch/2026-09-17/berel3/modal_out/berel3-full-L12-olah+oshb-fit",
+ "model_file": "model.int8-int4emb.onnx",
+ "model_sha256": "2653147de67316e2519c847ec9724a96cc70c9341f09fc5191b95f103c91cee7",
+ "tokenizer_sha256": "ee375c25873d723b02d0f60d4d53305091ec8fc0a97825b7f79b9859a228bd58",
+ "data_sha256": "0dbc58fcd48850292fc099dec6fa83ac811e48a6244747234f47e91912fd22cc",
+ "window": "normalize(left)[-32:] + target + normalize(right)[:32]",
+ "max_len": 128,
+ "side": 32,
+ "inputs": {
+  "input_ids": "int64 [batch, seq]",
+  "attention_mask": "float32 [batch, seq]",
+  "target_mask": "float32 [batch, seq]"
+ },
+ "output": "logits float32 [batch], positive means censor"
+}

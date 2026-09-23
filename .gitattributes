@@ -1,0 +1,2 @@
+# One piece per LF-terminated line; the loader splits on LF only.
+model/vocab.txt -text

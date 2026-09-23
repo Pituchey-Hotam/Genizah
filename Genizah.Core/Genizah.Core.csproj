@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The add-in's text pipeline: normalization, the divine-name candidate finder and the model's
+       input encoding. No Office dependency, so it is tested on its own (Genizah.Core.Tests). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Genizah.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

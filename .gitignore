@@ -403,3 +403,9 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio
+
+### Genizah ###
+# Full-data parity vectors: they hold Olah text, which must never reach this (public) repo.
+Genizah.Core.Tests/testdata/local/
+# Model binaries are distributed separately; model/manifest.json records which one.
+model/*.onnx
