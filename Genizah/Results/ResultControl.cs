@@ -2,6 +2,7 @@
 using System.Windows.Forms;
 using Genizah.Results;
 using Microsoft.Office.Interop.Word;
+using Microsoft.Office.Tools.Word;
 using Application = Microsoft.Office.Interop.Word.Application;
 
 namespace Genizah
@@ -37,23 +38,9 @@ namespace Genizah
             this.Result.Bookmark.Select();
         }
 
-        private const WdColorIndex INVALID_COLOR = (WdColorIndex) 9999999;
-
         private void UndoHandler(object sender, EventArgs e)
         {
-            var doc = Globals.ThisAddIn.Application.ActiveDocument;
-            var range = this.Result.Bookmark.Range;
-            range.Text = this.Result.OriginalText;
-            // If the original text was partially highlighted (or had multiple highlight colors), INVALID_COLOR will be returned.
-            // For now, we just don't keep the highlight information in this case.
-            if (this.Result.OriginalHighlight != INVALID_COLOR)
-            {
-                range.HighlightColorIndex = this.Result.OriginalHighlight;
-            }
-            else
-            {
-                range.HighlightColorIndex = WdColorIndex.wdNoHighlight;
-            }
+            this.Result.UndoReplacement(); 
             RemoveResultControlHandler?.Invoke(this, EventArgs.Empty);
         }
     }

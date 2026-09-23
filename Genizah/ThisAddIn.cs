@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Genizah.Results;
 using Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools;
+using static System.Net.Mime.MediaTypeNames;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah
@@ -15,10 +17,12 @@ namespace Genizah
         public List<SearchResult> ResultsList = new List<SearchResult>();
         public ResultsControl resultsControl = new ResultsControl();
         public CustomTaskPane resultsPane;
+
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
-            Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             resultsPane = this.CustomTaskPanes.Add(resultsControl, "תוצאות");
+            resultsPane.VisibleChanged += HandlePaneVisibleChanged;
+            Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
         }
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
@@ -47,12 +51,9 @@ namespace Genizah
             }
 
             // Remove Results HighLights
-            if (ResultsList.Count > 0)
+            foreach (var result in ResultsList)
             {
-                foreach (var result in ResultsList)
-                {
-                    result.Bookmark.Range.HighlightColorIndex = 0;
-                }
+                result.Unhighlight();
             }
         }
 
@@ -65,7 +66,7 @@ namespace Genizah
             string text = doc.Content.Text;
             foreach (var name in NameInfo.names)
             {
-                if (name.FindPattern.Match(doc.Content.Text).Success)
+                if (name.FindPattern.Match(text).Success)
                 {
                     return true;
                 }
@@ -78,7 +79,6 @@ namespace Genizah
         /// </summary>
         public void CensorNames(Word.Document doc)
         {
-            this.ResultsList = new List<SearchResult>();
             Application.UndoRecord.StartCustomRecord("צנזור שמות לגניזה");
             Application.ScreenUpdating = false;
             try { 
@@ -87,7 +87,7 @@ namespace Genizah
                     ReplaceName(doc, name);
                 }
 
-                resultsControl.UpdateSearchResults(this.ResultsList);
+                resultsControl.ShowSearchResults(this.ResultsList);
                 resultsPane.Visible = true;
             }
             finally
@@ -95,7 +95,7 @@ namespace Genizah
                 Application.ScreenUpdating = true;
                 Application.UndoRecord.EndCustomRecord();
             }
-}
+        }
 
         private void ReplaceName(Document doc, NameInfo name)
         {
@@ -103,33 +103,35 @@ namespace Genizah
             {
                 // Fetch document contents
                 Word.Range range = doc.Content;
-                string text = range.Text;
-
-                // Find matches with Regular Expression
-                Match match = name.FindPattern.Match(text);
-                if (!match.Success) return;
 
                 // A bit of a hack:
                 // Word has hidden characters that handle formatting, links etc. These characters are skipped in the string returned by range.Text.
                 // Because of this, the range indices don't neccisarily match the range indices (ie. range.Text.Length != range.End).
                 // To work around this, we use range.Characters, whose indices match range.Text, to convert text indices to range indices.
+                
+                // Workaround for tables: Word inserts a special character between table cells, which is actually two unicode characters long.
+                string text = range.Text.Replace("\r\a", "\r");
+
+                // Find matches with Regular Expression
+                Match match = name.FindPattern.Match(text);
+                if (!match.Success) return;
+
                 var chars = range.Characters;
                 var matchRange = doc.Range(chars[match.Index+1].Start, chars[match.Index + match.Length].End);
 
-                var originalText = matchRange.Text;
-                var originalHighlight = matchRange.HighlightColorIndex;
-                matchRange.Text = name.getSelectedReplacement();
-                var bookmarkId = '_' + originalText + Guid.NewGuid().ToString().Split('-').First();
-                matchRange.HighlightColorIndex = WdColorIndex.wdYellow;
-                Word.Bookmark bookmark = this.Application.ActiveDocument.Bookmarks.Add(bookmarkId, matchRange);
-                SearchResult result = new SearchResult()
-                {
-                    Bookmark = bookmark,
-                    OriginalText = originalText,
-                    OriginalHighlight = originalHighlight,
-                    ReplacementText = name.getSelectedReplacement(),
-                };
+                SearchResult result = new SearchResult(matchRange, name);
                 this.ResultsList.Add(result);
+            }
+        }
+
+        private void HandlePaneVisibleChanged(object sender, EventArgs e)
+        {
+            foreach (var result in this.ResultsList)
+            {
+                if (this.resultsPane.Visible)
+                    result.Highlight();
+                else
+                    result.Unhighlight();
             }
         }
 

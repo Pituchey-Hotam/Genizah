@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using Genizah.Results;
@@ -14,8 +15,9 @@ namespace Genizah
             this.flowLayoutPanel1.AutoScroll = true;
         }
 
-        public void UpdateSearchResults(List<SearchResult> results)
+        public void ShowSearchResults(List<SearchResult> results)
         {
+            flowLayoutPanel1.Controls.Clear();
             foreach (var result in results.OrderBy(x => x.Bookmark.Start))
             {
                 ResultControl resultControl = new ResultControl(result);
@@ -24,6 +26,7 @@ namespace Genizah
                     flowLayoutPanel1.Controls.Remove(resultControl);
                 };
                 flowLayoutPanel1.Controls.Add(resultControl);
+                result.Highlight();
             }
         }
     }

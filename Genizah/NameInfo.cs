@@ -11,7 +11,7 @@ namespace Genizah
     /// <summary>
     /// Represents a holy name which requires censoring.
     /// </summary>
-    internal class NameInfo
+    public class NameInfo
     {
         /// Internal Id representing this name
         public string Id { get; }
@@ -25,11 +25,13 @@ namespace Genizah
         /// Default options for replacing the name
         public string[] ReplacementOptions { get; }
 
-        public NameInfo(string id, string displayName, string findPattern, string[] replacementOptions)
+        public NameInfo(string id, string displayName, string[] findPattern, string[] replacementOptions)
         {
             Id = id;
             DisplayName = displayName;
-            string regex = @"\b" + string.Join(DIACRITICS_PATTERN, findPattern.ToCharArray()) + @"\b";
+            // Wrap the regex with lookarounds ensuring we're at a word boundary,
+            // allow for hebrew prefixes, and Nikud.
+            string regex = @"(?<=^|\P{L})" + WithNikud(HEBREW_PREFIXES.Concat(findPattern)) + @"(?=$|\P{L})";
             FindPattern = new Regex(regex, RegexOptions.Compiled);
             ReplacementOptions = replacementOptions;
         }
@@ -53,20 +55,26 @@ namespace Genizah
         }
 
         public static string DIACRITICS_PATTERN = "[\u0591-\u05c2]*";
+        public static string[] HEBREW_PREFIXES = new string[] { "[בהוכלמ]?" };
+
+        private static string WithNikud(IEnumerable<string> letters)
+        {
+            return string.Join(DIACRITICS_PATTERN, letters) + DIACRITICS_PATTERN;
+        }
 
         /// <summary>
         /// List of holy names to be handled by the add-in
         /// </summary>
         public static NameInfo[] names =
         {
-            new NameInfo("havaya", "שם הויה", "יהוה", new string[] { "ה'", "ד'" }),
-            new NameInfo("adnut", "אדני", "אדני", new string[] { "-דני", "א-דני" }),
-            new NameInfo("el", "אל", "אל", new string[] { "-ל", "קל" }),
-            new NameInfo("eloha", "אלוה", "אלוה", new string[] { "-לוה", "א-לוה" }),
-            new NameInfo("elohim", "אלהים", "אלהים", new string[] { "-להים", "א-להים", "אלקים" }),
-            new NameInfo("ehye", "אהיה", "אהיה", new string[] { "-היה", "א-היה"}),
-            new NameInfo("shaday", "שדי", "שדי", new string[] { "ש-די" }),
-            new NameInfo("tsvaot", "צבאות", "צבאות", new string[] { "צב-ות", "צב-אות" })
+            new NameInfo("havaya", "שם הויה", new string[] { "י", "ה", "ו", "ה" }, new string[] { "ה'", "ד'" }),
+            new NameInfo("adnut", "אדני", new string[] { "א", "ד", "נ", "י" }, new string[] { "-דני", "א-דני" }),
+            new NameInfo("el", "אל", new string[] { "א", "ל" }, new string[] { "-ל", "קל" }),
+            new NameInfo("eloha", "אלוה", new string[] { "א", "ל", "ו?", "ה" }, new string[] { "-לוה", "א-לוה" }),
+            new NameInfo("elohim", "אלהים", new string[] { "א", "ל", "ו?", "ה", "י?", "ם" }, new string[] { "-להים", "א-להים", "אלקים" }),
+            new NameInfo("ehye", "אהיה", new string[] { "א", "ה", "י", "ה" }, new string[] { "-היה", "א-היה"}),
+            new NameInfo("shaday", "שדי", new string[] { "ש", "ד", "י" }, new string[] { "ש-די" }),
+            new NameInfo("tsvaot", "צבאות", new string[] { "צ", "ב", "א", "ו?", "ת" }, new string[] { "צב-ות", "צב-אות" })
         };
     }
 
