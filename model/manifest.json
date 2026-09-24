@@ -13,5 +13,7 @@
   "attention_mask": "float32 [batch, seq]",
   "target_mask": "float32 [batch, seq]"
  },
- "output": "logits float32 [batch], positive means censor"
+ "output": "logits float32 [batch], positive means censor",
+ "batching": "one window per run: the int8 layers quantize activations over the whole batch, so batch-mates change a window's logit",
+ "onnxruntime": "1.30.0"
 }

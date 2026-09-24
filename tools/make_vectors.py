@@ -10,10 +10,13 @@ The Python code is the source of truth for all three pieces the add-in reimpleme
   add-in find the same occurrences;
 - the window and tokenizer: `berel3.py` `encode_rows` — `normalize(left)[-32:] + target +
   normalize(right)[:32]`, the fit's `tokenizer.json`, `[CLS] … [SEP]` cut to 128 ids, and a
-  target mask of every piece whose offsets overlap the target.
+  target mask of every piece whose offsets overlap the target;
+- the model's output: the fit's shipping ONNX graph under onnxruntime, one window per run. The
+  int8 layers quantize activations with a scale taken over the whole batch, so a window's logit
+  depends on what it is batched with; the add-in scores each window alone, and so do these.
 
-Run from the repo root of the add-in (`Genizah/`) with the interpreter that has `tokenizers`
-and torch (`py -3.13`):
+Run from the repo root of the add-in (`Genizah/`) with the interpreter that has `tokenizers`,
+torch and onnxruntime (`py -3.13`):
 
     py -3.13 tools/make_vectors.py [--fit DIR] [--no-local]
 
@@ -22,7 +25,7 @@ Writes, committed (this repo is public, so nothing here may contain Olah text):
     model/vocab.txt, model/manifest.json          the tokenizer vocabulary, one piece per line
     Genizah.Core.Tests/testdata/normalization.json  verbatim copy of the classifier's vectors
     Genizah.Core.Tests/testdata/patterns.json       the Python regexes, as strings
-    Genizah.Core.Tests/testdata/pipeline.json       raw text -> candidates -> model inputs
+    Genizah.Core.Tests/testdata/pipeline.json       raw text -> candidates -> model inputs -> logits
 
 and, git-ignored, under `Genizah.Core.Tests/testdata/local/` (Olah text; never commit):
 
@@ -53,6 +56,7 @@ from extract.names import UNDASHED_PATTERNS  # noqa: E402
 from label.patterns import NAME_ORDER  # noqa: E402
 
 SIDE = 32
+MODEL_FILE = "model.int8-int4emb.onnx"
 MAX_LEN = 128
 
 # The tokenizer configuration the C# port implements. A tokenizer.json that differs in any of
@@ -133,13 +137,21 @@ def encode(tok, left, target, right):
     return ids, tgt
 
 
-def pipeline_case(tok, case, text):
+def logit(sess, ids, tgt):
+    """The model's output for one window, run alone (batch 1, so no padding)."""
+    import numpy as np
+    feed = {"input_ids": np.array([ids], np.int64), "attention_mask": np.ones((1, len(ids)), np.float32),
+            "target_mask": np.array([tgt], np.float32)}
+    return float(sess.run(None, feed)[0][0])
+
+
+def pipeline_case(tok, sess, case, text):
     n = normalize(text)
     cands = []
     for a, b, name in scan(n):
         ids, tgt = encode(tok, n[:a], n[a:b], n[b:])
         cands.append({"start": a, "end": b, "name": name, "target": n[a:b],
-                      "input_ids": ids, "target_mask": tgt})
+                      "input_ids": ids, "target_mask": tgt, "logit": logit(sess, ids, tgt)})
     return {"case": case, "text": text, "normalized": n, "candidates": cands}
 
 
@@ -211,6 +223,12 @@ def main():
     check_tokenizer(tj)
     tok = Tokenizer.from_file(str(tj_path))
 
+    import onnxruntime as ort
+    model_path = args.fit / MODEL_FILE
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = 1
+    sess = ort.InferenceSession(str(model_path), so, providers=["CPUExecutionProvider"])
+
     # model/: the vocabulary and where it came from.
     vocab = sorted(tj["model"]["vocab"].items(), key=lambda kv: kv[1])
     MODEL_DIR.mkdir(exist_ok=True)
@@ -220,14 +238,17 @@ def main():
         "about": "The shipping model's provenance. The .onnx file is not in git; copy it here from "
                  "the fit directory. Regenerate this file and vocab.txt with tools/make_vectors.py.",
         "fit_dir": str(args.fit.relative_to(ROOT)).replace("\\", "/"),
-        "model_file": "model.int8-int4emb.onnx",
-        "model_sha256": sha256(args.fit / "model.int8-int4emb.onnx"),
+        "model_file": MODEL_FILE,
+        "model_sha256": sha256(model_path),
         "tokenizer_sha256": sha256(tj_path),
         "data_sha256": fit["data_sha256"],
         "window": fit["recipe"]["window"], "max_len": MAX_LEN, "side": SIDE,
         "inputs": {"input_ids": "int64 [batch, seq]", "attention_mask": "float32 [batch, seq]",
                    "target_mask": "float32 [batch, seq]"},
         "output": "logits float32 [batch], positive means censor",
+        "batching": "one window per run: the int8 layers quantize activations over the whole batch, "
+                    "so batch-mates change a window's logit",
+        "onnxruntime": ort.__version__,
     })
 
     # Committed vectors.
@@ -239,12 +260,14 @@ def main():
         "patterns": {name: UNDASHED_PATTERNS[name].pattern for name in NAME_ORDER},
     })
     chapters = {(c["book"], c["chapter"]): c["body"] for c in oshb_chapters()}
-    cases = [pipeline_case(tok, case, text) for case, text in HANDWRITTEN]
-    cases += [pipeline_case(tok, f"OSHB {b} {c}", chapters[(b, c)]) for b, c in OSHB_SAMPLE]
+    cases = [pipeline_case(tok, sess, case, text) for case, text in HANDWRITTEN]
+    cases += [pipeline_case(tok, sess, f"OSHB {b} {c}", chapters[(b, c)]) for b, c in OSHB_SAMPLE]
     write_json(TESTDATA / "pipeline.json", {
-        "about": "Raw text -> normalized text -> candidates (normalized offsets) -> model inputs. "
-                 "Generated by tools/make_vectors.py from the Python sources of truth.",
-        "side": SIDE, "max_len": MAX_LEN, "tokenizer_sha256": sha256(tj_path), "cases": cases,
+        "about": "Raw text -> normalized text -> candidates (normalized offsets) -> model inputs -> "
+                 "logits (each window run alone). Generated by tools/make_vectors.py from the Python "
+                 "sources of truth.",
+        "side": SIDE, "max_len": MAX_LEN, "tokenizer_sha256": sha256(tj_path),
+        "model_sha256": sha256(model_path), "onnxruntime": ort.__version__, "cases": cases,
     })
     n_cands = sum(len(c["candidates"]) for c in cases)
     print(f"pipeline.json: {len(cases)} cases, {n_cands} candidates")

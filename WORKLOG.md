@@ -1,5 +1,15 @@
 # Worklog
 
+## 2026-09-24 — ONNX Runtime inference in `Genizah.Core`
+
+`NameClassifier` runs the shipping graph over a text's candidates, one window per run, since
+batch-mates move a window's probability by up to 0.2 under the int8 layers' dynamic
+quantization. Its logits match Python ORT to 1e-5 on net48 and net7.0, against logits
+`make_vectors.py` now writes into `pipeline.json`. net48 needed a direct ORT reference and x64,
+or it loads System32's older `onnxruntime.dll`. Not in the add-in yet; thresholds (classifier
+phase 4) must be fitted on batch-1 scores.
+→ `CLAUDE.md` (Layout, Rules)
+
 ## 2026-09-23 — The model's input pipeline, ported to C# (`Genizah.Core`)
 
 New netstandard2.0 library: normalization with a raw-offset map, the labeller's candidate

@@ -1,10 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The add-in's text pipeline: normalization, the divine-name candidate finder and the model's
-       input encoding. No Office dependency, so it is tested on its own (Genizah.Core.Tests). -->
+  <!-- The add-in's text pipeline: normalization, the divine-name candidate finder, the model's
+       input encoding and its inference. No Office dependency, so it is tested on its own
+       (Genizah.Core.Tests). -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Genizah.Core</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The version tools/make_vectors.py scores the vectors with (model/manifest.json): the
+         graph's 4-bit embedding table is a contrib op, whose kernel can change between releases. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+  </ItemGroup>
 
 </Project>
