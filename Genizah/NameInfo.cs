@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Genizah
 {
@@ -13,26 +8,23 @@ namespace Genizah
     /// </summary>
     public class NameInfo
     {
-        /// Internal Id representing this name
+        /// Internal Id representing this name, as Genizah.Core's NameFinder reports it
         public string Id { get; }
 
         /// Display name for UI
         public string DisplayName { get; }
 
-        /// Pattern to be used for searching for the name
-        public Regex FindPattern { get; }
+        /// The name's letters, unpointed: the form the replacement options are written for
+        public string BaseForm { get; }
 
         /// Default options for replacing the name
         public string[] ReplacementOptions { get; }
 
-        public NameInfo(string id, string displayName, string[] findPattern, string[] replacementOptions)
+        public NameInfo(string id, string displayName, string baseForm, string[] replacementOptions)
         {
             Id = id;
             DisplayName = displayName;
-            // Wrap the regex with lookarounds ensuring we're at a word boundary,
-            // allow for hebrew prefixes, and Nikud.
-            string regex = @"(?<=^|\P{L})" + WithNikud(HEBREW_PREFIXES.Concat(findPattern)) + @"(?=$|\P{L})";
-            FindPattern = new Regex(regex, RegexOptions.Compiled);
+            BaseForm = baseForm;
             ReplacementOptions = replacementOptions;
         }
 
@@ -54,12 +46,10 @@ namespace Genizah
             Properties.Settings.Default[SettingsKey] = replacement;
         }
 
-        public static string DIACRITICS_PATTERN = "[\u0591-\u05c2]*";
-        public static string[] HEBREW_PREFIXES = new string[] { "[בהוכלמ]?" };
-
-        private static string WithNikud(IEnumerable<string> letters)
+        /// <returns>The name with this id</returns>
+        public static NameInfo ById(string id)
         {
-            return string.Join(DIACRITICS_PATTERN, letters) + DIACRITICS_PATTERN;
+            return names.Single(n => n.Id == id);
         }
 
         /// <summary>
@@ -67,14 +57,14 @@ namespace Genizah
         /// </summary>
         public static NameInfo[] names =
         {
-            new NameInfo("havaya", "שם הויה", new string[] { "י", "ה", "ו", "ה" }, new string[] { "ה'", "ד'" }),
-            new NameInfo("adnut", "אדני", new string[] { "א", "ד", "נ", "י" }, new string[] { "-דני", "א-דני" }),
-            new NameInfo("el", "אל", new string[] { "א", "ל" }, new string[] { "-ל", "קל" }),
-            new NameInfo("eloha", "אלוה", new string[] { "א", "ל", "ו?", "ה" }, new string[] { "-לוה", "א-לוה" }),
-            new NameInfo("elohim", "אלהים", new string[] { "א", "ל", "ו?", "ה", "י?", "ם" }, new string[] { "-להים", "א-להים", "אלקים" }),
-            new NameInfo("ehye", "אהיה", new string[] { "א", "ה", "י", "ה" }, new string[] { "-היה", "א-היה"}),
-            new NameInfo("shaday", "שדי", new string[] { "ש", "ד", "י" }, new string[] { "ש-די" }),
-            new NameInfo("tsvaot", "צבאות", new string[] { "צ", "ב", "א", "ו?", "ת" }, new string[] { "צב-ות", "צב-אות" })
+            new NameInfo("havaya", "שם הויה", "יהוה", new string[] { "ה'", "ד'" }),
+            new NameInfo("adnut", "אדני", "אדני", new string[] { "-דני", "א-דני" }),
+            new NameInfo("el", "אל", "אל", new string[] { "-ל", "קל" }),
+            new NameInfo("eloha", "אלוה", "אלוה", new string[] { "-לוה", "א-לוה" }),
+            new NameInfo("elohim", "אלהים", "אלהים", new string[] { "-להים", "א-להים", "אלקים" }),
+            new NameInfo("ehye", "אהיה", "אהיה", new string[] { "-היה", "א-היה"}),
+            new NameInfo("shaday", "שדי", "שדי", new string[] { "ש-די" }),
+            new NameInfo("tsvaot", "צבאות", "צבאות", new string[] { "צב-ות", "צב-אות" })
         };
     }
 

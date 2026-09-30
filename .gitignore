@@ -409,3 +409,5 @@ FodyWeavers.xsd
 Genizah.Core.Tests/testdata/local/
 # Model binaries are distributed separately; model/manifest.json records which one.
 model/*.onnx
+# Benchmark documents and timings (tools/benchmark): generated locally.
+tools/benchmark/out/

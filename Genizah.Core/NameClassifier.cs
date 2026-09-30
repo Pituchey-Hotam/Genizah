@@ -75,15 +75,28 @@ namespace Genizah.Core
         /// <summary>Every candidate in <paramref name="raw"/>, scored, in text order.</summary>
         public List<ScoredCandidate> Classify(string raw)
         {
+            return new List<ScoredCandidate>(Scan(raw, out _));
+        }
+
+        /// <summary>
+        /// <see cref="Classify"/>, scoring each candidate only as it is enumerated, so a caller can
+        /// report progress or stop early. <paramref name="count"/> is how many candidates there are.
+        /// </summary>
+        public IEnumerable<ScoredCandidate> Scan(string raw, out int count)
+        {
             var norm = TextNormalizer.NormalizeWithOffsets(raw);
             var found = NameFinder.Find(norm.Text);
-            var scored = new List<ScoredCandidate>(found.Count);
+            count = found.Count;
+            return ScoreEach(norm, found);
+        }
+
+        private IEnumerable<ScoredCandidate> ScoreEach(NormalizedText norm, List<NameCandidate> found)
+        {
             foreach (var c in found)
             {
                 norm.ToRaw(c.Start, c.End, out int rawStart, out int rawEnd);
-                scored.Add(new ScoredCandidate(c, rawStart, rawEnd, Score(encoder.Encode(norm.Text, c))));
+                yield return new ScoredCandidate(c, rawStart, rawEnd, Score(encoder.Encode(norm.Text, c)));
             }
-            return scored;
         }
 
         public void Dispose() => session.Dispose();

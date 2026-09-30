@@ -118,5 +118,23 @@ namespace Genizah.Properties {
                 this["name_replacement_tsvaot"] = value;
             }
         }
+
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string censor_logit_threshold {
+            get {
+                return ((string)(this["censor_logit_threshold"]));
+            }
+        }
+
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string leave_logit_threshold {
+            get {
+                return ((string)(this["leave_logit_threshold"]));
+            }
+        }
     }
 }

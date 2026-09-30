@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Genizah.Core;
 using Genizah.Results;
-using Microsoft.Office.Interop.Word;
+using Genizah.Scanning;
 using Microsoft.Office.Tools;
-using static System.Net.Mime.MediaTypeNames;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah
@@ -18,11 +18,21 @@ namespace Genizah
         public ResultsControl resultsControl = new ResultsControl();
         public CustomTaskPane resultsPane;
 
+        private const string Title = "צנזור גניזה";
+
+        /// <summary>The document ResultsList belongs to, and its text as of the last change made from the pane.</summary>
+        private Word.Document resultsDocument;
+        private string reviewedText;
+        private bool scanning;
+
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
             resultsPane = this.CustomTaskPanes.Add(resultsControl, "תוצאות");
             resultsPane.VisibleChanged += HandlePaneVisibleChanged;
+            resultsControl.ResultChanged += (s, args) => RecordReview();
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
+            // Off the UI thread, so the first scan doesn't wait for it.
+            ModelLoader.StartLoading();
         }
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
@@ -34,106 +44,246 @@ namespace Genizah
         /// </summary>
         void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
         {
-            // Do not warn if the document contains no names
-            if (ContainsNames(doc))
+            if (scanning)
             {
-                DialogResult dialogResult = MessageBox.Show("מסמך זה מכיל שמות שאינם נמחקים וטעון גניזה. האם תרצה לצנזר שמות ה' לפני הדפסה?",
-                                            "צנזור גניזה",
-                                            MessageBoxButtons.YesNoCancel);
-                if (dialogResult == DialogResult.Yes)
+                MessageBox.Show("סריקת השמות עדיין פועלת. יש להדפיס שוב בסיומה.", Title);
+                cancel = true;
+                return;
+            }
+            try
+            {
+                if (IsReviewed(doc))
                 {
-                    CensorNames(doc);
+                    // Scanned, and unchanged since: the pane's results stand.
+                    int pending = ResultsList.Count(r => r.State == ResultState.Pending);
+                    if (pending > 0 && MessageBox.Show($"{pending} שמות במסמך עדיין ממתינים להכרעה בחלונית התוצאות. להדפיס בכל זאת?",
+                                                       Title, MessageBoxButtons.YesNo) == DialogResult.No)
+                    {
+                        cancel = true;
+                        return;
+                    }
                 }
-                else if (dialogResult == DialogResult.Cancel)
+                else if (ContainsNames(doc))
+                {
+                    DialogResult dialogResult = MessageBox.Show("מסמך זה מכיל שמות שאינם נמחקים וטעון גניזה. האם תרצה לצנזר שמות ה' לפני הדפסה?\n" +
+                                                                "ההדפסה תבוטל כדי שתוכל לעבור על התוצאות, ואחר כך יש להדפיס שוב.",
+                                                                Title,
+                                                                MessageBoxButtons.YesNoCancel);
+                    if (dialogResult == DialogResult.Yes)
+                    {
+                        cancel = true;
+                        CensorNames(doc, "לאחר ההכרעה בשמות יש להדפיס שוב.");
+                        return;
+                    }
+                    else if (dialogResult == DialogResult.Cancel)
+                    {
+                        cancel = true;
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (MessageBox.Show("לא ניתן היה לבדוק את המסמך לשמות: " + ex.Message + "\nלהדפיס בכל זאת?",
+                                    Title, MessageBoxButtons.YesNo) == DialogResult.No)
                 {
                     cancel = true;
+                    return;
                 }
             }
 
             // Remove Results HighLights
             foreach (var result in ResultsList)
             {
-                result.Unhighlight();
+                try { result.Unhighlight(); }
+                catch (Exception) { }
             }
         }
 
         /// <summary>
-        /// Searches for holy names in a document
+        /// True if the document has a name to censor or ask about. Runs the classifier on the UI
+        /// thread, stopping at the first such name; a print can't wait for an async answer.
         /// </summary>
-        /// <returns>true if the document contains any names</returns>
         public bool ContainsNames(Word.Document doc)
         {
-            string text = doc.Content.Text;
-            foreach (var name in NameInfo.names)
+            Cursor.Current = Cursors.WaitCursor;
+            try
             {
-                if (name.FindPattern.Match(text).Success)
-                {
-                    return true;
-                }
+                NameClassifier classifier = ModelLoader.Classifier.GetAwaiter().GetResult();
+                return DocumentScanner.HasNamesToCensor(classifier, DocumentScanner.ReadText(doc), Thresholds.FromSettings(out _));
             }
-            return false;
+            finally
+            {
+                Cursor.Current = Cursors.Default;
+            }
         }
 
         /// <summary>
-        /// Censors names in a document, replacing them with the user preferred replacement
+        /// Scores every candidate name in the document (off the UI thread), censors those the
+        /// model is sure of, and lists them all in the results pane.
         /// </summary>
-        public void CensorNames(Word.Document doc)
+        /// <param name="notice">Shown above the results, if given.</param>
+        /// <param name="finished">Called with where the scan's time went, however it ended.</param>
+        public async void CensorNames(Word.Document doc, string notice = null, Action<ScanTimings> finished = null)
+        {
+            if (scanning) return;
+            scanning = true;
+            var timings = new ScanTimings();
+            // Brings the awaits below back to Word's UI thread, where the document may be touched.
+            if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
+                SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+            try
+            {
+                using (timings.Measure("clear"))
+                {
+                    ClearResults();
+                    resultsPane.Visible = true;
+                    resultsControl.ShowMessage("טוען את המודל…");
+                }
+                NameClassifier classifier;
+                using (timings.Measure("load_model"))
+                    classifier = await ModelLoader.Classifier;
+
+                string text;
+                using (timings.Measure("read_text"))
+                    text = DocumentScanner.ReadText(doc);
+                timings.TextLength = text.Length;
+                var progress = new Progress<(int Done, int Total)>(p =>
+                {
+                    using (timings.Measure("progress_ui"))
+                        resultsControl.ShowMessage($"סורק שמות… {p.Done} מתוך {p.Total}");
+                });
+                List<ScoredCandidate> scored;
+                using (timings.Measure("score"))
+                    scored = await Task.Run(() => DocumentScanner.Score(classifier, text, progress));
+                timings.Candidates = scored.Count;
+
+                // The spans are offsets into the text as it was scored.
+                bool changed;
+                using (timings.Measure("reread_text"))
+                    changed = DocumentScanner.ReadText(doc) != text;
+                if (changed)
+                {
+                    timings.Outcome = "document changed";
+                    resultsControl.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
+                    return;
+                }
+                Thresholds thresholds = Thresholds.FromSettings(out string problem);
+                ApplyResults(doc, text, scored, thresholds, timings);
+                string shown = string.Join("\n", new[] { problem, notice }.Where(s => s != null));
+                using (timings.Measure("pane"))
+                    resultsControl.ShowSearchResults(ResultsList, shown.Length == 0 ? null : shown);
+            }
+            catch (Exception ex)
+            {
+                timings.Outcome = "failed: " + ex.Message;
+                resultsControl.ShowMessage("הסריקה נכשלה: " + ex.Message);
+            }
+            finally
+            {
+                scanning = false;
+                System.Diagnostics.Debug.WriteLine("Genizah scan: " + timings.ToJson());
+                finished?.Invoke(timings);
+            }
+        }
+
+        /// <summary>Marks each scored span in the document, and censors those the model is sure of.</summary>
+        private void ApplyResults(Word.Document doc, string text, List<ScoredCandidate> scored, Thresholds thresholds, ScanTimings timings)
         {
             Application.UndoRecord.StartCustomRecord("צנזור שמות לגניזה");
             Application.ScreenUpdating = false;
-            try { 
-                foreach (var name in NameInfo.names)
+            try
+            {
+                PositionMap map;
+                using (timings.Measure("build_map"))
+                    map = PositionMap.Build(doc, text);
+                // Paragraphs that don't add up to the text: the whole document's Characters, which is slow but sure.
+                Word.Characters chars = map == null ? doc.Content.Characters : null;
+                if (map == null)
+                    timings.Outcome = "ok, without the position map";
+                // Every span is bookmarked before any text changes: bookmarks move with the edits.
+                foreach (var s in scored)
                 {
-                    ReplaceName(doc, name);
+                    Word.Range range;
+                    using (timings.Measure("to_range"))
+                        range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
+                    Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Logit);
+                    // Never rewrite text other than what was scored: ask instead.
+                    if (verdict == Verdict.Censor && range.Text != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                        verdict = Verdict.Ask;
+                    DocumentScanner.Context(text, s.RawStart, s.RawEnd, 30, out string before, out string after);
+                    SearchResult result;
+                    using (timings.Measure("new_result"))
+                        result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit, verdict, before, after);
+                    ResultsList.Add(result);
+                    if (result.OriginalText != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                        timings.RangeMismatches++;
                 }
-
-                resultsControl.ShowSearchResults(this.ResultsList);
-                resultsPane.Visible = true;
+                using (timings.Measure("censor_highlight"))
+                    foreach (var result in ResultsList)
+                    {
+                        if (result.Verdict == Verdict.Censor)
+                            result.Censor();
+                        if (resultsPane.Visible)
+                            result.Highlight();
+                    }
             }
             finally
             {
                 Application.ScreenUpdating = true;
                 Application.UndoRecord.EndCustomRecord();
             }
+            resultsDocument = doc;
+            using (timings.Measure("record_review"))
+                RecordReview();
         }
 
-        private void ReplaceName(Document doc, NameInfo name)
+        private void ClearResults()
         {
-            while (true)
+            foreach (var result in ResultsList)
             {
-                // Fetch document contents
-                Word.Range range = doc.Content;
-
-                // A bit of a hack:
-                // Word has hidden characters that handle formatting, links etc. These characters are skipped in the string returned by range.Text.
-                // Because of this, the range indices don't neccisarily match the range indices (ie. range.Text.Length != range.End).
-                // To work around this, we use range.Characters, whose indices match range.Text, to convert text indices to range indices.
-                
-                // Workaround for tables: Word inserts a special character between table cells, which is actually two unicode characters long.
-                string text = range.Text.Replace("\r\a", "\r");
-
-                // Find matches with Regular Expression
-                Match match = name.FindPattern.Match(text);
-                if (!match.Success) return;
-
-                var chars = range.Characters;
-                var matchRange = doc.Range(chars[match.Index+1].Start, chars[match.Index + match.Length].End);
-
-                SearchResult result = new SearchResult(matchRange, name);
-                this.ResultsList.Add(result);
+                // Its document may have been closed.
+                try { result.Release(); }
+                catch (Exception) { }
             }
+            ResultsList.Clear();
+            resultsDocument = null;
+            reviewedText = null;
+        }
+
+        private void RecordReview()
+        {
+            try { reviewedText = resultsDocument == null ? null : DocumentScanner.ReadText(resultsDocument); }
+            catch (Exception) { reviewedText = null; }
+        }
+
+        /// <summary>True if the pane's results are for this document, and it hasn't changed since.</summary>
+        private bool IsReviewed(Word.Document doc)
+        {
+            return resultsDocument != null && reviewedText != null
+                && resultsDocument.FullName == doc.FullName
+                && DocumentScanner.ReadText(doc) == reviewedText;
         }
 
         private void HandlePaneVisibleChanged(object sender, EventArgs e)
         {
             foreach (var result in this.ResultsList)
             {
-                if (this.resultsPane.Visible)
-                    result.Highlight();
-                else
-                    result.Unhighlight();
+                try
+                {
+                    if (this.resultsPane.Visible)
+                        result.Highlight();
+                    else
+                        result.Unhighlight();
+                }
+                catch (Exception) { }
             }
         }
+
+#if DEBUG
+        /// <summary>What Application.COMAddIns("Genizah").Object returns: tools/benchmark's way in.</summary>
+        protected override object RequestComAddInAutomationService() => new BenchmarkHook();
+#endif
 
         #region VSTO generated code
 
