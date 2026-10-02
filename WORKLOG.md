@@ -1,5 +1,14 @@
 # Worklog
 
+## 2026-10-02 — Recall-hole patterns in `NameFinder`
+
+The two pattern changes that waited for the add-in to use the labeller's finder are in:
+`NameFinder` now takes Aramaic endings on אלהים (אלהא, אלהין, אלהך, אלהה, אלהכם, …) and a bare
+relative ש before יהוה and אלהים, as `dataset/olah/extract/names.py` does (both datasets were
+relabelled the same day). Vectors regenerated, with a hand-written case for each change; 122
+tests pass on net48 and net7.0, including all 23,671 training windows and 9,327 texts.
+→ `CLAUDE.md` (Layout: `NameFinder`)
+
 ## 2026-09-30 — Scan performance: position map, reused-row pane, benchmark
 
 Word seemed to hang on large documents after scoring. The cause was indexing the whole

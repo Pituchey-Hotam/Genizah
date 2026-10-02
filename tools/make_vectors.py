@@ -85,6 +85,8 @@ HANDWRITTEN = [
     ("vocalized word containing אל is not split", "בְּנֵי יִשְׂרָאֵל וּבֵית־אֵל"),
     ("proclitic stack", "והאלהים וכשהאלהים ולאל מהאל שהאל כאלהים בשדי"),
     ("bare relative ש does not open a name", "שאל שאלה שאהיה כשאל"),
+    ("bare relative ש before יהוה and אלהים only", "שיהוה ושאלהים שאלהינו כשיהוה שאלוה שאהיה"),
+    ("Aramaic tails of אלהים", "אלהא ואלהא אלהין אלהיא אלהך אלהה באלהה אלהכם אלהכון אלההם לאלההון אלהנא אלהו"),
     ("inflected elohim and eloha", "אלהי אלהיך אלהינו אלהיכם אלהיהם אלהיו אלהיה אלוהות האלוהית אלוהיות"),
     ("el with 1cs possessive, and longer words", "אלי אליו אלה אלהן אלמוני"),
     ("ehye in its frame", "אהיה אשר אהיה"),

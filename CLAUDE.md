@@ -89,7 +89,7 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
   Update the Python, rerun `tools/make_vectors.py`, then make the C# pass. Never edit a vector
   file by hand.
 - **Run the local parity tests before committing a pipeline change.** They check every training
-  window (23,604) and every Olah/OSHB text (9,327). They skip silently when `testdata/local/`
+  window (23,671) and every Olah/OSHB text (9,327). They skip silently when `testdata/local/`
   is missing, so a green run on a fresh clone proves less.
 - **No `\uXXXX` escapes for invisible characters in source.** Write code points as numbers
   (`(char)0x200F`) or, in Python, as `\N{NAME}`. Some editing tools turn escapes into the

@@ -50,7 +50,7 @@ namespace Genizah.Core
         // Hebrew letters, written once so the patterns below read like names.py.
         private const string Alef = "א", Bet = "ב", Dalet = "ד", He = "ה", Vav = "ו",
             Yod = "י", FinalKaf = "ך", Kaf = "כ", Lamed = "ל", FinalMem = "ם",
-            Mem = "מ", Nun = "נ", Tsadi = "צ", Shin = "ש", Tav = "ת";
+            Mem = "מ", FinalNun = "ן", Nun = "נ", Tsadi = "צ", Shin = "ש", Tav = "ת";
 
         private static readonly string LetterClass = "[" + Alef + "-" + Tav + "]";
 
@@ -65,6 +65,16 @@ namespace Genizah.Core
             Vav + "?(?:(?:" + Kaf + Shin + "|" + Shin + ")(?=[" + Bet + Lamed + Mem + Kaf + He + "]))?["
             + Bet + Lamed + Mem + Kaf + "]?" + He + "?";
 
+        /// <summary>
+        /// names.py PROCLITIC_UNDASHED_BARE_SH, for יהוה and אלהים only (BARE_SH_NAMES): a bare
+        /// ש is allowed there (שיהוה), since no ordinary word is שיהוה or שאלהים.
+        /// </summary>
+        private static readonly string ProcliticUndashedBareSh =
+            Vav + "?(?:" + Kaf + Shin + "(?=[" + Bet + Lamed + Mem + Kaf + He + "])|" + Shin + ")?["
+            + Bet + Lamed + Mem + Kaf + "]?" + He + "?";
+
+        private static readonly HashSet<string> BareShNames = new HashSet<string> { "havaya", "elohim" };
+
         private static readonly string ElohaSuffixAlt = "(?:" + Vav + Tav + "|" + Yod + Tav + "|" + Yod + Vav + Tav + ")?";
 
         private static readonly string ElohimTailAlt = "(?:(?:" + Yod + Yod + "|" + Yod + ")?" + FinalMem
@@ -72,6 +82,14 @@ namespace Genizah.Core
             + "|" + Yod + Vav + "|" + Yod + He + "|" + Yod + FinalKaf + "|" + Yod + ")";
 
         private static readonly string ElTailAlt = "(?:" + Yod + ")?";
+
+        /// <summary>
+        /// names.py _ELOHIM_ARAMAIC_TAIL_ALT: Aramaic אלה's endings (אלהא, אלהין, אלהיא, אלהך,
+        /// אלהה, אלהכם, אלהכון, אלההם, אלההון, אלהנא), an alternative to elohim's own tail.
+        /// </summary>
+        private static readonly string ElohimAramaicTailAlt = "(?:" + Alef + "|" + Yod + FinalNun
+            + "|" + Yod + Alef + "|" + FinalKaf + "|" + He + "|" + Kaf + FinalMem + "|" + Kaf + Vav + FinalNun
+            + "|" + He + FinalMem + "|" + He + Vav + FinalNun + "|" + Nun + Alef + ")";
 
         /// <summary>names.py SKELETONS: each name's letters, and which are optional.</summary>
         private static readonly Dictionary<string, (string Letter, bool Optional)[]> Skeletons =
@@ -123,8 +141,12 @@ namespace Genizah.Core
         private static string BuildPattern(string name, (string Letter, bool Optional)[] letters)
         {
             // Hebrew letters need no escaping, in Python's re.escape or here.
-            return "(?<!" + LetterClass + ")" + ProcliticUndashed + letters[0].Letter + Mark + "*"
-                + RestFor(name, letters) + "(?!" + LetterClass + ")";
+            string rest = RestFor(name, letters);
+            if (name == "elohim")
+                rest = "(?:" + rest + "|" + SkeletonBody(letters.Skip(1).Take(3)) + Mark + "*" + ElohimAramaicTailAlt + ")";
+            string proclitic = BareShNames.Contains(name) ? ProcliticUndashedBareSh : ProcliticUndashed;
+            return "(?<!" + LetterClass + ")" + proclitic + letters[0].Letter + Mark + "*"
+                + rest + "(?!" + LetterClass + ")";
         }
 
         /// <summary>names.py _skeleton_body.</summary>
