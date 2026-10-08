@@ -98,6 +98,14 @@
 
         <TextBlock x:Name="summary" Margin="12,10,12,8" TextWrapping="Wrap"/>
 
+        <!-- A scan's progress: its stage, a bar (moving while the stage has no count), and the count. -->
+        <StackPanel x:Name="progressPanel" Margin="12,10,12,8" Visibility="Collapsed">
+            <TextBlock x:Name="progressStage" TextWrapping="Wrap"/>
+            <ProgressBar x:Name="progressBar" Height="4" Margin="0,8,0,6" BorderThickness="0"
+                         Foreground="{StaticResource Accent}" Background="{StaticResource Divider}"/>
+            <TextBlock x:Name="progressCount" Foreground="{StaticResource SecondaryText}"/>
+        </StackPanel>
+
         <ListBox x:Name="list" Grid.Row="1" BorderThickness="0" Background="Transparent"
                  ItemContainerStyle="{StaticResource Row}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -116,7 +124,8 @@
                     <Run Text="{Binding ContextBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding ContextAfter, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding VerdictText}" Foreground="{StaticResource SecondaryText}"/>
+                <TextBlock Text="{Binding VerdictText}" ToolTip="{Binding ScoreText}" TextWrapping="Wrap"
+                           Foreground="{StaticResource SecondaryText}"/>
                 <TextBlock Text="{Binding ReplacementText}" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,10"/>
                 <StackPanel Orientation="Horizontal">
                     <Button Content="צנזר" Style="{StaticResource PrimaryButton}" Click="Censor_Click"

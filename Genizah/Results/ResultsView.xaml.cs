@@ -32,14 +32,46 @@ namespace Genizah.Results
             list.ItemsSource = items;
         }
 
-        /// <summary>Shows a message in place of results: progress, or what went wrong.</summary>
+        /// <summary>Shows a message in place of results: what went wrong, say.</summary>
         public void ShowMessage(string message)
+        {
+            ClearResults();
+            ShowProgressPanel(false);
+            summary.Text = message;
+        }
+
+        /// <summary>
+        /// Shows a scan's progress in place of results: its stage, and how far it is through it.
+        /// A <paramref name="total"/> of 0 means the stage can't count, and the bar just moves.
+        /// </summary>
+        public void ShowProgress(string stage, int done, int total)
+        {
+            if (progressPanel.Visibility != Visibility.Visible)
+            {
+                ClearResults();
+                ShowProgressPanel(true);
+            }
+            progressStage.Text = stage;
+            progressBar.IsIndeterminate = total == 0;
+            progressBar.Maximum = Math.Max(total, 1);
+            progressBar.Value = done;
+            progressCount.Text = total == 0 ? "" : $"{done} מתוך {total}";
+        }
+
+        private void ClearResults()
         {
             results = new List<SearchResult>();
             notice = null;
             groupRows.Clear();
             items.Clear();
-            summary.Text = message;
+        }
+
+        private void ShowProgressPanel(bool show)
+        {
+            progressPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            summary.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+            // Stops the moving bar's animation along with it.
+            if (!show) progressBar.IsIndeterminate = false;
         }
 
         /// <summary>
@@ -65,6 +97,7 @@ namespace Genizah.Results
             }
             items = new ObservableCollection<object>(shown);
             list.ItemsSource = items;
+            ShowProgressPanel(false);
             ShowSummary();
         }
 

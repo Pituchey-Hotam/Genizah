@@ -35,6 +35,17 @@ namespace Genizah.Core.Tests
         }
 
         [Fact]
+        public void ProbabilityIsTheLogitCalibratedByTheShippedTemperature()
+        {
+            var t = Shipped();
+            Assert.True(t.Temperature > 1);
+            Assert.Equal(0.5, t.Probability(0f));
+            // classifier/docs/THRESHOLDS-2026-10-05.md: elohim's censor_at +7.05 is 0.977.
+            Assert.Equal(0.977, t.Probability(7.053641f).Value, 3);
+            Assert.Equal(1 - t.Probability(3f).Value, t.Probability(-3f).Value, 12);
+        }
+
+        [Fact]
         public void BadFilesAreRefused()
         {
             string Write(string json)
@@ -50,6 +61,8 @@ namespace Genizah.Core.Tests
             string alwaysTwice = Write("{\"model_sha256\": \"x\", \"names\": [{\"name\": \"el\", \"censor_at\": 1, \"leave_below\": 0}], " +
                                        "\"censor_always\": [\"el\"]}");
             string alwaysUnknown = Write("{\"model_sha256\": \"x\", \"censor_always\": [\"zeus\"]}");
+            string coldTemperature = Write("{\"model_sha256\": \"x\", \"temperature\": 0}");
+            string noTemperature = Write("{\"model_sha256\": \"x\"}");
             try
             {
                 Assert.Throws<InvalidDataException>(() => NameThresholds.Load(unknown));
@@ -57,6 +70,8 @@ namespace Genizah.Core.Tests
                 Assert.Throws<InvalidDataException>(() => NameThresholds.Load(twice));
                 Assert.Throws<InvalidDataException>(() => NameThresholds.Load(alwaysTwice));
                 Assert.Throws<InvalidDataException>(() => NameThresholds.Load(alwaysUnknown));
+                Assert.Throws<InvalidDataException>(() => NameThresholds.Load(coldTemperature));
+                Assert.Null(NameThresholds.Load(noTemperature).Probability(1f));
             }
             finally
             {
@@ -65,6 +80,8 @@ namespace Genizah.Core.Tests
                 File.Delete(twice);
                 File.Delete(alwaysTwice);
                 File.Delete(alwaysUnknown);
+                File.Delete(coldTemperature);
+                File.Delete(noTemperature);
             }
         }
     }

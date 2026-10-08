@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using Genizah.Core;
 using Genizah.Scanning;
 
@@ -90,8 +91,30 @@ namespace Genizah.Results
                     case Verdict.Ask: verdict = "לא בטוח"; break;
                     default: verdict = "להשאיר"; break;
                 }
-                return $"המודל: {verdict} ({Result.Logit:0.00})";
+                return Result.Probability is double p
+                    ? $"המודל: {verdict} ({Percent(p)})"
+                    : $"המודל: {verdict}";
             }
+        }
+
+        /// <summary>
+        /// The verdict line's tooltip: what its percentage means, and the raw score for whoever
+        /// tunes the thresholds.
+        /// </summary>
+        public string ScoreText => Result.Probability == null
+            ? $"logit {Result.Logit:0.00}"
+            : $"סבירות שזה שם קודש · logit {Result.Logit:0.00}";
+
+        /// <summary>
+        /// A probability as a percentage, with a decimal near 0% and 100%, where the thresholds of
+        /// some names sit (אל censors from about 1%).
+        /// </summary>
+        private static string Percent(double p)
+        {
+            if (p < 0.001) return "פחות מ-0.1%";
+            if (p > 0.999) return "מעל 99.9%";
+            if (p < 0.01 || p > 0.99) return (p * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+            return (p * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
         }
 
         public string ReplacementText => "יוחלף ב: " + Result.CensoredText;

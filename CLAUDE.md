@@ -40,6 +40,12 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     scan. A name in its `censor_always` (currently `havaya`) is always Censor. A name with no
     thresholds is always Ask, and so is every name if the file is missing or invalid (the pane
     then says why).
+  - `Scanning/InputLock`: a scan's Word-side stages (marking every name, then censoring and
+    highlighting) run on the UI thread but pause every 50 ms so the pane can draw its progress
+    (`Dispatcher.Yield` at background priority). Meanwhile the document's top-level Word window
+    is disabled, as under a modal dialog, so the user can't edit the text whose offsets are
+    being mapped. The lock is taken before the text is re-read and checked against what was
+    scored.
   - `Results/`: one `SearchResult` per candidate (hidden bookmark, model verdict, and a state:
     pending, censored or left). The pane is WPF (`ResultsView.xaml`), hosted in the task pane's
     Windows Forms `ResultsControl` through an `ElementHost`. It's styled like Word's
@@ -52,7 +58,12 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     boundaries by `Genizah.Core.Quote`. Keyboard: the arrows move, Enter/Space toggle a group,
     צ (or C) censors and ה (or L) leaves or undoes a censor, then moves to the next row. The
     shortcuts match the typed character (`PreviewTextInput`), not the physical key, so they
-    follow the keyboard layout.
+    follow the keyboard layout. The details give the model's verdict with, in brackets, its
+    calibrated probability that the name is divine (sigmoid(logit / T), T from
+    `thresholds.json`); the line's tooltip says what the percentage is and gives the raw logit.
+    During a scan the pane shows its stage (1 of 3: scoring, 2: marking the names in the
+    document, 3: censoring and highlighting) with a progress bar and count; the bar just moves
+    while a stage can't count (loading the model, building the position map).
   - `CensorSettingsDialog.xaml`: the censor style (סגנון צנזור), opened from the גניזה group's
     dialog launcher. It's a WPF window owned by Word's active window: one editable drop-down per
     name, saved only on אישור, with ברירות מחדל resetting every name to its first option. Its
@@ -89,6 +100,8 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     Not part of the pipeline either.
   - `NameThresholds`: loads `model/thresholds.json`. Thresholds are doubles, compared with the
     float logit as a double: each sits between two logits, and a float could round onto one.
+    It also reads phase 4's `temperature`, for `Probability(logit)`, the pane's calibrated
+    probability (null if the file has none).
 - `Genizah.Core.Tests/`: xUnit, run on both net48 (the add-in's runtime and Regex engine) and
   net7.0: `dotnet test Genizah.Core.Tests`.
 - `tools/make_vectors.py`: regenerates `model/vocab.txt`, `model/manifest.json` and every test

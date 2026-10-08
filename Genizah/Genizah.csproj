@@ -207,6 +207,7 @@
     <Compile Include="NameInfo.cs" />
     <Compile Include="Scanning\BenchmarkHook.cs" />
     <Compile Include="Scanning\DocumentScanner.cs" />
+    <Compile Include="Scanning\InputLock.cs" />
     <Compile Include="Scanning\ModelLoader.cs" />
     <Compile Include="Scanning\PositionMap.cs" />
     <Compile Include="Scanning\ScanTimings.cs" />

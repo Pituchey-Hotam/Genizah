@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using Genizah.Core;
 using Genizah.Results;
 using Genizah.Scanning;
@@ -134,12 +135,10 @@ namespace Genizah
                 SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
             try
             {
+                resultsPane.Visible = true;
+                await ShowProgress(timings, ModelLoader.Classifier.IsCompleted ? Stage1 : "טוען את המודל…");
                 using (timings.Measure("clear"))
-                {
                     ClearResults();
-                    resultsPane.Visible = true;
-                    resultsControl.ShowMessage("טוען את המודל…");
-                }
                 NameClassifier classifier;
                 using (timings.Measure("load_model"))
                     classifier = await ModelLoader.Classifier;
@@ -151,28 +150,33 @@ namespace Genizah
                 var progress = new Progress<(int Done, int Total)>(p =>
                 {
                     using (timings.Measure("progress_ui"))
-                        resultsControl.ShowMessage($"סורק שמות… {p.Done} מתוך {p.Total}");
+                        resultsControl.ShowProgress(Stage1, p.Done, p.Total);
                 });
                 List<ScoredCandidate> scored;
                 using (timings.Measure("score"))
                     scored = await Task.Run(() => DocumentScanner.Score(classifier, text, progress));
                 timings.Candidates = scored.Count;
 
-                // The spans are offsets into the text as it was scored.
-                bool changed;
-                using (timings.Measure("reread_text"))
-                    changed = DocumentScanner.ReadText(doc) != text;
-                if (changed)
+                // From here on the scan edits the document, pausing only for the pane to draw.
+                using (new InputLock(doc))
                 {
-                    timings.Outcome = "document changed";
-                    resultsControl.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
-                    return;
+                    await ShowProgress(timings, Stage2);
+                    // The spans are offsets into the text as it was scored.
+                    bool changed;
+                    using (timings.Measure("reread_text"))
+                        changed = DocumentScanner.ReadText(doc) != text;
+                    if (changed)
+                    {
+                        timings.Outcome = "document changed";
+                        resultsControl.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
+                        return;
+                    }
+                    Thresholds thresholds = Thresholds.Load(out string problem);
+                    await ApplyResults(doc, text, scored, thresholds, timings);
+                    string shown = string.Join("\n", new[] { problem, notice }.Where(s => s != null));
+                    using (timings.Measure("pane"))
+                        resultsControl.ShowSearchResults(ResultsList, shown.Length == 0 ? null : shown);
                 }
-                Thresholds thresholds = Thresholds.Load(out string problem);
-                ApplyResults(doc, text, scored, thresholds, timings);
-                string shown = string.Join("\n", new[] { problem, notice }.Where(s => s != null));
-                using (timings.Measure("pane"))
-                    resultsControl.ShowSearchResults(ResultsList, shown.Length == 0 ? null : shown);
             }
             catch (Exception ex)
             {
@@ -187,8 +191,37 @@ namespace Genizah
             }
         }
 
-        /// <summary>Marks each scored span in the document, and censors those the model is sure of.</summary>
-        private void ApplyResults(Word.Document doc, string text, List<ScoredCandidate> scored, Thresholds thresholds, ScanTimings timings)
+        // A scan's stages, as the pane names them.
+        private const string Stage1 = "שלב 1 מתוך 3: סורק את השמות במסמך…";
+        private const string Stage2 = "שלב 2 מתוך 3: מסמן את השמות במסמך…";
+        private const string Stage3 = "שלב 3 מתוך 3: מצנזר ומדגיש את השמות…";
+
+        /// <summary>How long the Word-side stages run between letting the pane draw their progress.</summary>
+        private static readonly TimeSpan RepaintEvery = TimeSpan.FromMilliseconds(50);
+
+        /// <summary>Shows a stage in the pane, and lets it draw before the UI thread goes back to work.</summary>
+        private async Task ShowProgress(ScanTimings timings, string stage, int done = 0, int total = 0)
+        {
+            using (timings.Measure("progress_ui"))
+            {
+                resultsControl.ShowProgress(stage, done, total);
+                await Repaint();
+            }
+        }
+
+        /// <summary>
+        /// Lets WPF lay out and draw the pane: the continuation runs below render priority. Input
+        /// to the document is off meanwhile (<see cref="InputLock"/>).
+        /// </summary>
+        private static DispatcherPriorityAwaitable Repaint() =>
+            Dispatcher.Yield(DispatcherPriority.Background);
+
+        /// <summary>
+        /// Marks each scored span in the document, and censors those the model is sure of. It runs
+        /// on the UI thread, pausing every <see cref="RepaintEvery"/> for the pane to show how far
+        /// it is; the caller holds an <see cref="InputLock"/> on the document.
+        /// </summary>
+        private async Task ApplyResults(Word.Document doc, string text, List<ScoredCandidate> scored, Thresholds thresholds, ScanTimings timings)
         {
             Application.UndoRecord.StartCustomRecord("צנזור שמות לגניזה");
             Application.ScreenUpdating = false;
@@ -201,9 +234,15 @@ namespace Genizah
                 Word.Characters chars = map == null ? doc.Content.Characters : null;
                 if (map == null)
                     timings.Outcome = "ok, without the position map";
+                var sinceRepaint = System.Diagnostics.Stopwatch.StartNew();
                 // Every span is bookmarked before any text changes: bookmarks move with the edits.
                 foreach (var s in scored)
                 {
+                    if (sinceRepaint.Elapsed >= RepaintEvery)
+                    {
+                        await ShowProgress(timings, Stage2, ResultsList.Count, scored.Count);
+                        sinceRepaint.Restart();
+                    }
                     Word.Range range;
                     using (timings.Measure("to_range"))
                         range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
@@ -214,19 +253,31 @@ namespace Genizah
                     DocumentScanner.Context(text, s.RawStart, s.RawEnd, 30, out string before, out string after);
                     SearchResult result;
                     using (timings.Measure("new_result"))
-                        result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit, verdict, before, after);
+                        result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
+                                                  thresholds?.Probability(s.Logit), verdict, before, after);
                     ResultsList.Add(result);
                     if (result.OriginalText != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
                 }
-                using (timings.Measure("censor_highlight"))
-                    foreach (var result in ResultsList)
+                await ShowProgress(timings, Stage3, 0, ResultsList.Count);
+                sinceRepaint.Restart();
+                for (int i = 0; i < ResultsList.Count; i++)
+                {
+                    if (sinceRepaint.Elapsed >= RepaintEvery)
+                    {
+                        await ShowProgress(timings, Stage3, i, ResultsList.Count);
+                        sinceRepaint.Restart();
+                    }
+                    var result = ResultsList[i];
+                    using (timings.Measure("censor_highlight"))
                     {
                         if (result.Verdict == Verdict.Censor)
                             result.Censor();
                         if (resultsPane.Visible)
                             result.Highlight();
                     }
+                }
+                await ShowProgress(timings, "מסיים…");
             }
             finally
             {

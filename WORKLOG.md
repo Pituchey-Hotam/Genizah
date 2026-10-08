@@ -1,5 +1,14 @@
 # Worklog
 
+## 2026-10-08 — Results pane: calibrated probability, staged scan progress
+
+The details now show the probability that a name is divine, sigmoid(logit / T) with phase 4's
+temperature, in brackets after the verdict, in place of the raw logit (kept in the tooltip). A
+scan shows its stage and a progress bar for each of scoring, marking and censoring. The Word-side stages, which froze Word for about
+8 s at 861 names with nothing on screen, now pause every 50 ms to let the pane draw, with Word's
+window disabled meanwhile (`InputLock`). Built, not yet tried in Word.
+→ `CLAUDE.md` (Layout: `Scanning/InputLock`, `Results/`, `NameThresholds`)
+
 ## 2026-10-08 — Censor style dialog in WPF, with an icon
 
 The WinForms grid of combo boxes is now a WPF window in the results pane's Fluent style, with

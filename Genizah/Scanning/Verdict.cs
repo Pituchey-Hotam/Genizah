@@ -40,6 +40,9 @@ namespace Genizah.Scanning
             return Verdict.Ask;
         }
 
+        /// <inheritdoc cref="NameThresholds.Probability"/>
+        public double? Probability(float logit) => byName.Probability(logit);
+
         /// <summary>
         /// The thresholds shipped beside the model, or null if they are missing or unreadable;
         /// <paramref name="problem"/> then says what's wrong, and every name is asked about.

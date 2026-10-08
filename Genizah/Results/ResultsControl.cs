@@ -24,8 +24,11 @@ namespace Genizah
             view.ResultChanged += (sender, e) => ResultChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Shows a message in place of results: progress, or what went wrong.</summary>
+        /// <summary>Shows a message in place of results: what went wrong, say.</summary>
         public void ShowMessage(string message) => view.ShowMessage(message);
+
+        /// <inheritdoc cref="ResultsView.ShowProgress"/>
+        public void ShowProgress(string stage, int done = 0, int total = 0) => view.ShowProgress(stage, done, total);
 
         /// <inheritdoc cref="ResultsView.ShowSearchResults"/>
         public void ShowSearchResults(List<SearchResult> results, string notice) => view.ShowSearchResults(results, notice);
