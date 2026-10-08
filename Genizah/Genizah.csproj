@@ -135,6 +135,11 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Office.Tools.v4.0.Framework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -192,17 +197,12 @@
     <Compile Include="CensorSettingsDialog.Designer.cs">
       <DependentUpon>CensorSettingsDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Results\ResultControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Results\ResultControl.Designer.cs">
-      <DependentUpon>ResultControl.cs</DependentUpon>
-    </Compile>
+    <Compile Include="Results\ResultItems.cs" />
     <Compile Include="Results\ResultsControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Results\ResultsControl.Designer.cs">
-      <DependentUpon>ResultsControl.cs</DependentUpon>
+    <Compile Include="Results\ResultsView.xaml.cs">
+      <DependentUpon>ResultsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Results\SearchResult.cs" />
     <Compile Include="NameInfo.cs" />
@@ -218,12 +218,10 @@
     <EmbeddedResource Include="CensorControls.resx">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Results\ResultControl.resx">
-      <DependentUpon>ResultControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Results\ResultsControl.resx">
-      <DependentUpon>ResultsControl.cs</DependentUpon>
-    </EmbeddedResource>
+    <Page Include="Results\ResultsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

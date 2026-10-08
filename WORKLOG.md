@@ -9,6 +9,13 @@ relabelled the same day). Vectors regenerated, with a hand-written case for each
 tests pass on net48 and net7.0, including all 23,671 training windows and 9,327 texts.
 → `CLAUDE.md` (Layout: `NameFinder`)
 
+## 2026-10-02 — Results pane in WPF, Accessibility Checker layout
+
+The reused-row Windows Forms pane still scrolled slowly and tore, because each scroll step moved
+about 60 child windows. The pane is now a WPF list in an `ElementHost`: groups per verdict,
+one-line rows, a details area with the actions, and virtualized pixel scrolling.
+→ `CLAUDE.md` (Layout: `Results/`)
+
 ## 2026-09-30 — Scan performance: position map, reused-row pane, benchmark
 
 Word seemed to hang on large documents after scoring. The cause was indexing the whole

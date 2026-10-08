@@ -40,10 +40,14 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     `Genizah.dll.config` (`app.config`), empty in the repo, and belong to the shipping fit. The
     owner sets them. Until both are set, every candidate is Ask.
   - `Results/`: one `SearchResult` per candidate (hidden bookmark, model verdict, and a state:
-    pending, censored or left). The pane lists Ask first, then Censor, then Leave. It reuses
-    just enough fixed-height `ResultControl` rows to fill the visible area, rebinding them as the
-    list scrolls. One control per result cost about 50 ms and ten window handles each, and a
-    process gets 10,000 handles.
+    pending, censored or left). The pane is WPF (`ResultsView.xaml`), hosted in the task pane's
+    Windows Forms `ResultsControl` through an `ElementHost`. It's styled like Word's
+    Accessibility Checker: collapsible groups for Ask, Censor and Leave (only the first starts
+    expanded), one-line rows, and the selected result's context and actions in a fixed area
+    below the list. Selecting a row selects the name in the document. The list is flat (each
+    group's rows follow its `GroupHeader` while it's expanded), so it stays virtualized with
+    recycled, pixel-scrolled rows. Moving real child windows per row, as the Windows Forms pane
+    did, scrolled slowly and tore.
   - `NameInfo.cs`: display names, base forms and the user's replacement per name. It no longer
     finds anything: candidates come from `Genizah.Core`.
 - `Genizah.Core/`: netstandard2.0, with no Office dependency. It holds the model's input
