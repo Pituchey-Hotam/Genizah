@@ -1,5 +1,12 @@
 # Worklog
 
+## 2026-10-08 — Censor style dialog in WPF, with an icon
+
+The WinForms grid of combo boxes is now a WPF window in the results pane's Fluent style, with
+a title-bar ה׳ icon (`Resources/Settings.ico`), and אישור/ביטול instead of a lone סגור that
+always saved, plus ברירות מחדל. The pane's palette and buttons moved into a shared `Theme.xaml`.
+→ `CLAUDE.md` (Layout)
+
 ## 2026-10-08 — Ribbon icon for the censor button
 
 The צנזר שמות button now has an icon in Word's flat style: a page with one line blacked out

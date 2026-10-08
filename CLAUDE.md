@@ -53,6 +53,13 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     צ (or C) censors and ה (or L) leaves or undoes a censor, then moves to the next row. The
     shortcuts match the typed character (`PreviewTextInput`), not the physical key, so they
     follow the keyboard layout.
+  - `CensorSettingsDialog.xaml`: the censor style (סגנון צנזור), opened from the גניזה group's
+    dialog launcher. It's a WPF window owned by Word's active window: one editable drop-down per
+    name, saved only on אישור, with ברירות מחדל resetting every name to its first option. Its
+    title-bar icon is `Resources/Settings.ico`, the ribbon icon's blue ה׳ badge redrawn on a
+    16-pixel grid, since the full ribbon icon is unreadable at title-bar size.
+  - `Theme.xaml`: Office's Fluent neutrals, the accent and the two button styles, merged by
+    both the results pane and the dialog.
   - `NameInfo.cs`: display names, base forms and the user's replacement per name. It no longer
     finds anything: candidates come from `Genizah.Core`.
 - `Genizah.Core/`: netstandard2.0, with no Office dependency. It holds the model's input

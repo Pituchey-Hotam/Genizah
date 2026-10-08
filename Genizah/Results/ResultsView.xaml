@@ -7,148 +7,86 @@
              TextOptions.TextFormattingMode="Display"
              PreviewTextInput="View_PreviewTextInput">
     <UserControl.Resources>
-        <!-- Office's Fluent neutrals, so the pane sits with Word's own. -->
-        <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="Text" Color="#323130"/>
-        <SolidColorBrush x:Key="SecondaryText" Color="#605E5C"/>
-        <SolidColorBrush x:Key="Hover" Color="#F3F2F1"/>
-        <SolidColorBrush x:Key="Pressed" Color="#EDEBE9"/>
-        <SolidColorBrush x:Key="Selected" Color="#E1DFDD"/>
-        <SolidColorBrush x:Key="Divider" Color="#E1DFDD"/>
-        <SolidColorBrush x:Key="ButtonBorder" Color="#8A8886"/>
-        <SolidColorBrush x:Key="Accent" Color="#185ABD"/>
-        <SolidColorBrush x:Key="AccentHover" Color="#1651AA"/>
-        <SolidColorBrush x:Key="AccentPressed" Color="#124393"/>
-        <!-- The same colors the names are highlighted with in the document. -->
-        <SolidColorBrush x:Key="PendingMark" Color="#F2C811"/>
-        <SolidColorBrush x:Key="CensoredMark" Color="#3CB043"/>
-        <SolidColorBrush x:Key="LeftMark" Color="#A19F9D"/>
-        <BooleanToVisibilityConverter x:Key="Visible"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Genizah;component/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <!-- The same colors the names are highlighted with in the document. -->
+            <SolidColorBrush x:Key="PendingMark" Color="#F2C811"/>
+            <SolidColorBrush x:Key="CensoredMark" Color="#3CB043"/>
+            <SolidColorBrush x:Key="LeftMark" Color="#A19F9D"/>
+            <BooleanToVisibilityConverter x:Key="Visible"/>
 
-        <Style x:Key="FlatButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource Surface}"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource ButtonBorder}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,3"/>
-            <Setter Property="MinWidth" Value="72"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="2" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource Hover}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource Pressed}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
-            <Setter Property="Background" Value="{StaticResource Accent}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="2" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentHover}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentPressed}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style x:Key="Row" TargetType="ListBoxItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="border" Background="Transparent" Padding="8,0">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Hover}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Selected}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <Style x:Key="Row" TargetType="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="border" Background="Transparent" Padding="8,0">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource Hover}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource Selected}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <DataTemplate DataType="{x:Type local:GroupHeader}">
+                <Grid Height="30" Background="Transparent" MouseLeftButtonUp="Header_MouseLeftButtonUp">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Points forward when collapsed (mirrored in right-to-left), down when expanded. -->
+                    <Path x:Name="chevron" Data="M0,0 L4,4 L0,8" Stroke="{StaticResource SecondaryText}"
+                          StrokeThickness="1.2" VerticalAlignment="Center" HorizontalAlignment="Center"
+                          RenderTransformOrigin="0.5,0.5"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                        <Setter TargetName="chevron" Property="RenderTransform">
+                            <Setter.Value>
+                                <RotateTransform Angle="90"/>
+                            </Setter.Value>
+                        </Setter>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
 
-        <DataTemplate DataType="{x:Type local:GroupHeader}">
-            <Grid Height="30" Background="Transparent" MouseLeftButtonUp="Header_MouseLeftButtonUp">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-                <!-- Points forward when collapsed (mirrored in right-to-left), down when expanded. -->
-                <Path x:Name="chevron" Data="M0,0 L4,4 L0,8" Stroke="{StaticResource SecondaryText}"
-                      StrokeThickness="1.2" VerticalAlignment="Center" HorizontalAlignment="Center"
-                      RenderTransformOrigin="0.5,0.5"/>
-                <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold"
-                           VerticalAlignment="Center"/>
-            </Grid>
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                    <Setter TargetName="chevron" Property="RenderTransform">
-                        <Setter.Value>
-                            <RotateTransform Angle="90"/>
-                        </Setter.Value>
-                    </Setter>
-                </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type local:ResultItem}">
-            <Grid Height="26">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="12"/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-                <Ellipse x:Name="mark" Grid.Column="1" Width="8" Height="8" Fill="{StaticResource PendingMark}"
-                         VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBlock x:Name="snippet" Grid.Column="2" VerticalAlignment="Center" TextTrimming="WordEllipsis">
-                    <Run Text="{Binding SnippetBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding SnippetAfter, Mode=OneWay}"/>
-                </TextBlock>
-            </Grid>
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding State}" Value="Censored">
-                    <Setter TargetName="mark" Property="Fill" Value="{StaticResource CensoredMark}"/>
-                    <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding State}" Value="Left">
-                    <Setter TargetName="mark" Property="Fill" Value="{StaticResource LeftMark}"/>
-                    <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
-                </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
+            <DataTemplate DataType="{x:Type local:ResultItem}">
+                <Grid Height="26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Ellipse x:Name="mark" Grid.Column="1" Width="8" Height="8" Fill="{StaticResource PendingMark}"
+                             VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="snippet" Grid.Column="2" VerticalAlignment="Center" TextTrimming="WordEllipsis">
+                        <Run Text="{Binding SnippetBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding SnippetAfter, Mode=OneWay}"/>
+                    </TextBlock>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding State}" Value="Censored">
+                        <Setter TargetName="mark" Property="Fill" Value="{StaticResource CensoredMark}"/>
+                        <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding State}" Value="Left">
+                        <Setter TargetName="mark" Property="Fill" Value="{StaticResource LeftMark}"/>
+                        <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource Surface}" TextElement.Foreground="{StaticResource Text}">

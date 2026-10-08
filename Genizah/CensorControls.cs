@@ -20,8 +20,7 @@ namespace Genizah
 
         private void GenizahGroup_DialogLauncherClick(object sender, RibbonControlEventArgs e)
         {
-            CensorSettingsDialog dialog = new CensorSettingsDialog();
-            dialog.ShowDialog();
+            CensorSettingsDialog.ShowOver(Globals.ThisAddIn.Application);
         }
     }
 }
