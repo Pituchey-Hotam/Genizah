@@ -1,5 +1,11 @@
 # Worklog
 
+## 2026-10-08 — Ribbon icon for the censor button
+
+The צנזר שמות button now has an icon in Word's flat style: a page with one line blacked out
+and a blue ה׳ badge. It's `Genizah/Resources/CensorNames.png` (64×64, so it stays sharp at high
+DPI), set from `Properties.Resources.CensorNames` in `CensorControls.Designer.cs`.
+
 ## 2026-10-08 — יהוה always censored
 
 At the owner's call, `havaya` is now censored whatever its score, instead of always asked
