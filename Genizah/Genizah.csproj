@@ -52,8 +52,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <!-- The shipping model. The .onnx file is git-ignored: copy it into ../model/ first. -->
-    <Content Include="..\model\*.onnx;..\model\vocab.txt">
+    <!-- The shipping model and its per-name thresholds. The .onnx file is git-ignored: copy it into ../model/ first. -->
+    <Content Include="..\model\*.onnx;..\model\vocab.txt;..\model\thresholds.json">
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

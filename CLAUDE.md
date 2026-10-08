@@ -35,10 +35,10 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     output after every scan. `Scanning/BenchmarkHook` (Debug builds only) lets
     `tools/benchmark` start a scan through `Application.COMAddIns("Genizah").Object`. It hands
     the scan to Word's UI thread, since calls from another process arrive on an RPC thread.
-  - `Scanning/Verdict`: censor at or above `censor_logit_threshold`, leave below
-    `leave_logit_threshold`, ask in between. Both are application settings in
-    `Genizah.dll.config` (`app.config`), empty in the repo, and belong to the shipping fit. The
-    owner sets them. Until both are set, every candidate is Ask.
+  - `Scanning/Verdict`: per name, censor at or above its `censor_at`, leave below its
+    `leave_below`, ask in between. The thresholds are `model/thresholds.json`, read once per
+    scan. A name with no thresholds is always Ask, and so is every name if the file is missing
+    or invalid (the pane then says why).
   - `Results/`: one `SearchResult` per candidate (hidden bookmark, model verdict, and a state:
     pending, censored or left). The pane is WPF (`ResultsView.xaml`), hosted in the task pane's
     Windows Forms `ResultsControl` through an `ElementHost`. It's styled like Word's
@@ -72,19 +72,28 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     form into the chosen replacement (אלהים → אלקים) and makes only that edit to the
     candidate's own letters, so proclitics, suffixes, extra matres and nikud stay
     (ואֱלֹהֵינוּ → ואֱלֹקינוּ). It isn't part of the model's pipeline contract.
+  - `NameThresholds`: loads `model/thresholds.json`. Thresholds are doubles, compared with the
+    float logit as a double: each sits between two logits, and a float could round onto one.
 - `Genizah.Core.Tests/`: xUnit, run on both net48 (the add-in's runtime and Regex engine) and
   net7.0: `dotnet test Genizah.Core.Tests`.
 - `tools/make_vectors.py`: regenerates `model/vocab.txt`, `model/manifest.json` and every test
   vector, expected logits included, from the Python sources of truth
   (`py -3.13 tools/make_vectors.py`). It refuses a `tokenizer.json` whose configuration differs
   from what the C# port implements.
+- `tools/make_thresholds.py`: writes `model/thresholds.json` from the classifier's phase 4
+  (`classifier/docs/THRESHOLDS-2026-10-05.md`) at the owner's false-censor tolerance per name
+  (`py -3.13 tools/make_thresholds.py el=0.03 elohim=0.10 eloha=0.05`, the current choice).
+  Names given no tolerance are always asked about. It refuses to write thresholds for any graph
+  other than the one phase 4 scored, and a test checks the file against `manifest.json`.
 - `tools/benchmark/run_benchmark.ps1`: times a scan in Word, phase by phase, on OSHB documents
   of increasing size (`plain`, and `mixed`, which has a table and fields). It needs a Debug build
   loaded in Word, and it counts names mapped to the wrong range. Documents and timings go to the
   git-ignored `tools/benchmark/out/` (`results.jsonl`, one line per run, with a `-Label`). Pass
   several sizes with `powershell -Command`, not `-File`, which passes the list as one string.
-- `model/`: `vocab.txt` and `manifest.json` (which fit, which graph, sha256s) are committed.
-  The `.onnx` file is git-ignored; copy it in from the fit directory the manifest names.
+- `model/`: `vocab.txt`, `manifest.json` (which fit, which graph, sha256s) and
+  `thresholds.json` are committed. The `.onnx` file is git-ignored; copy it in from the fit
+  directory the manifest names. A new graph needs new thresholds: rerun phase 4 on it, then
+  `make_thresholds.py`.
 
 ## Rules that are easy to break
 

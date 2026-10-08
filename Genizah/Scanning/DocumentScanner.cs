@@ -44,7 +44,7 @@ namespace Genizah.Scanning
         public static bool HasNamesToCensor(NameClassifier classifier, string text, Thresholds thresholds)
         {
             foreach (var s in classifier.Scan(text, out _))
-                if (thresholds == null || thresholds.Decide(s.Logit) != Verdict.Leave)
+                if (thresholds == null || thresholds.Decide(s.Candidate.NameId, s.Logit) != Verdict.Leave)
                     return true;
             return false;
         }

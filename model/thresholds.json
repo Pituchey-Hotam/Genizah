@@ -1,0 +1,34 @@
+{
+ "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). A name not listed is always asked about. Written by tools/make_thresholds.py.",
+ "model_sha256": "590e92a925fab246a46a91ab37f17f30d4a4d690aaeeea7d9e6ec7897fb4a3dc",
+ "source": "classifier/scratch/2026-10-04/phase4/thresholds.json (classifier/docs/THRESHOLDS-2026-10-05.md)",
+ "ask_budget": 0.1,
+ "temperature": 1.8843330769663449,
+ "names": [
+  {
+   "name": "elohim",
+   "false_censor_tolerance": 0.1,
+   "censor_at": 7.053641319274902,
+   "leave_below": -7.7002112865448
+  },
+  {
+   "name": "eloha",
+   "false_censor_tolerance": 0.05,
+   "censor_at": -9.13046932220459,
+   "leave_below": -9.493646621704102
+  },
+  {
+   "name": "el",
+   "false_censor_tolerance": 0.03,
+   "censor_at": -8.26490068435669,
+   "leave_below": -8.934983730316162
+  }
+ ],
+ "ask_always": [
+  "havaya",
+  "adnut",
+  "tsvaot",
+  "ehye",
+  "shaday"
+ ]
+}

@@ -20,13 +20,17 @@ namespace Genizah.Scanning
 
         public static void StartLoading() => _ = classifier.Value;
 
+        // CodeBase, not Location: VSTO shadow-copies the add-in's assemblies elsewhere, and
+        // only the add-in's own folder has the model and the native DLL.
+        private static string AddInDir => Path.GetDirectoryName(new Uri(typeof(ModelLoader).Assembly.CodeBase).LocalPath);
+
+        /// <summary>The model files: the graph, its vocabulary and its thresholds.</summary>
+        public static string ModelDir => Path.Combine(AddInDir, "model");
+
         private static NameClassifier Load()
         {
-            // CodeBase, not Location: VSTO shadow-copies the add-in's assemblies elsewhere, and
-            // only the add-in's own folder has the model and the native DLL.
-            string dir = Path.GetDirectoryName(new Uri(typeof(ModelLoader).Assembly.CodeBase).LocalPath);
-            PlaceNativeRuntime(dir);
-            string modelDir = Path.Combine(dir, "model");
+            PlaceNativeRuntime(AddInDir);
+            string modelDir = ModelDir;
             string[] models = Directory.Exists(modelDir) ? Directory.GetFiles(modelDir, "*.onnx") : new string[0];
             if (models.Length != 1)
                 throw new FileNotFoundException($"expected one .onnx model in {modelDir}, found {models.Length}");

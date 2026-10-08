@@ -1,4 +1,7 @@
-﻿using System.Globalization;
+﻿using System;
+using System.IO;
+using System.Runtime.Serialization;
+using Genizah.Core;
 
 namespace Genizah.Scanning
 {
@@ -14,51 +17,49 @@ namespace Genizah.Scanning
     }
 
     /// <summary>
-    /// The two logit thresholds that turn a score into a <see cref="Verdict"/>: censor at or above
-    /// <see cref="CensorAt"/>, leave below <see cref="LeaveBelow"/>, ask in between. They are
-    /// application settings (Genizah.dll.config) and belong to the shipping model's fit, so they
-    /// are set by hand for each model, never defaulted in code.
+    /// The per-name logit thresholds that turn a score into a <see cref="Verdict"/>: censor at or
+    /// above the name's censor_at, leave below its leave_below, ask in between. They ship beside
+    /// the model as model/thresholds.json (tools/make_thresholds.py) and belong to that graph. A
+    /// name with no thresholds (D2's rare names) is always asked about.
     /// </summary>
     public sealed class Thresholds
     {
-        public Thresholds(float censorAt, float leaveBelow)
+        private readonly NameThresholds byName;
+
+        private Thresholds(NameThresholds byName)
         {
-            CensorAt = censorAt;
-            LeaveBelow = leaveBelow;
+            this.byName = byName;
         }
 
-        public float CensorAt { get; }
-        public float LeaveBelow { get; }
-
-        public Verdict Decide(float logit)
+        public Verdict Decide(string nameId, float logit)
         {
-            if (logit >= CensorAt) return Verdict.Censor;
-            if (logit < LeaveBelow) return Verdict.Leave;
+            if (!byName.TryGet(nameId, out double censorAt, out double leaveBelow)) return Verdict.Ask;
+            if (logit >= censorAt) return Verdict.Censor;
+            if (logit < leaveBelow) return Verdict.Leave;
             return Verdict.Ask;
         }
 
         /// <summary>
-        /// The thresholds in the add-in's settings, or null if they aren't both set to numbers
-        /// with LeaveBelow &lt;= CensorAt. <paramref name="problem"/> then says what's wrong.
+        /// The thresholds shipped beside the model, or null if they are missing or unreadable;
+        /// <paramref name="problem"/> then says what's wrong, and every name is asked about.
         /// </summary>
-        public static Thresholds FromSettings(out string problem)
+        public static Thresholds Load(out string problem)
         {
-            var settings = Properties.Settings.Default;
-            string censor = settings.censor_logit_threshold, leave = settings.leave_logit_threshold;
             problem = null;
-            if (string.IsNullOrWhiteSpace(censor) || string.IsNullOrWhiteSpace(leave))
+            string path = Path.Combine(ModelLoader.ModelDir, "thresholds.json");
+            try
             {
-                problem = "ספי ההחלטה של המודל לא הוגדרו, ולכן כל השמות מוצגים לבדיקה.";
-                return null;
+                return new Thresholds(NameThresholds.Load(path));
             }
-            if (!float.TryParse(censor, NumberStyles.Float, CultureInfo.InvariantCulture, out float censorAt)
-                || !float.TryParse(leave, NumberStyles.Float, CultureInfo.InvariantCulture, out float leaveBelow)
-                || leaveBelow > censorAt)
+            catch (FileNotFoundException)
             {
-                problem = $"ספי ההחלטה של המודל אינם תקינים (censor {censor}, leave {leave}), ולכן כל השמות מוצגים לבדיקה.";
-                return null;
+                problem = "ספי ההחלטה של המודל לא נמצאו, ולכן כל השמות מוצגים לבדיקה.";
             }
-            return new Thresholds(censorAt, leaveBelow);
+            catch (Exception ex) when (ex is IOException || ex is SerializationException || ex is UnauthorizedAccessException)
+            {
+                problem = $"ספי ההחלטה של המודל אינם תקינים ({ex.Message}), ולכן כל השמות מוצגים לבדיקה.";
+            }
+            return null;
         }
     }
 }

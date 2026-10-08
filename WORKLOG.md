@@ -1,5 +1,14 @@
 # Worklog
 
+## 2026-10-08 — The relabelled fit, with per-name thresholds
+
+The add-in now ships the 2026-10-02 relabel's fit (`590e92a9…`; vectors regenerated, 125 tests
+pass on net48 and net7.0) and decides per name from `model/thresholds.json`: the owner's
+phase 4 tolerances are 3% for `el`, 5% for `eloha` and 10% for `elohim`, and every other name is
+always asked about. The single `censor_logit_threshold` / `leave_logit_threshold` pair in
+`app.config` is gone.
+→ `CLAUDE.md` (Layout: `Scanning/Verdict`, `NameThresholds`, `tools/make_thresholds.py`)
+
 ## 2026-10-02 — Recall-hole patterns in `NameFinder`
 
 The two pattern changes that waited for the add-in to use the labeller's finder are in:

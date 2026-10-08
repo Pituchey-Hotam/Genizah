@@ -110,7 +110,7 @@ namespace Genizah
             try
             {
                 NameClassifier classifier = ModelLoader.Classifier.GetAwaiter().GetResult();
-                return DocumentScanner.HasNamesToCensor(classifier, DocumentScanner.ReadText(doc), Thresholds.FromSettings(out _));
+                return DocumentScanner.HasNamesToCensor(classifier, DocumentScanner.ReadText(doc), Thresholds.Load(out _));
             }
             finally
             {
@@ -168,7 +168,7 @@ namespace Genizah
                     resultsControl.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
                     return;
                 }
-                Thresholds thresholds = Thresholds.FromSettings(out string problem);
+                Thresholds thresholds = Thresholds.Load(out string problem);
                 ApplyResults(doc, text, scored, thresholds, timings);
                 string shown = string.Join("\n", new[] { problem, notice }.Where(s => s != null));
                 using (timings.Measure("pane"))
@@ -207,7 +207,7 @@ namespace Genizah
                     Word.Range range;
                     using (timings.Measure("to_range"))
                         range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
-                    Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Logit);
+                    Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Candidate.NameId, s.Logit);
                     // Never rewrite text other than what was scored: ask instead.
                     if (verdict == Verdict.Censor && range.Text != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         verdict = Verdict.Ask;
