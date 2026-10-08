@@ -20,6 +20,7 @@ namespace Genizah.Scanning
     /// The per-name logit thresholds that turn a score into a <see cref="Verdict"/>: censor at or
     /// above the name's censor_at, leave below its leave_below, ask in between. They ship beside
     /// the model as model/thresholds.json (tools/make_thresholds.py) and belong to that graph. A
+    /// name the owner chose to always censor (censor_always) is censored whatever its score; a
     /// name with no thresholds (D2's rare names) is always asked about.
     /// </summary>
     public sealed class Thresholds

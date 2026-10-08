@@ -12,7 +12,8 @@ namespace Genizah.Core
     /// <c>censor_at</c>, leave below <c>leave_below</c>, ask in between. They are
     /// model/thresholds.json (tools/make_thresholds.py), read off the shipping graph's
     /// out-of-fold logits by the classifier's phase 4, so they belong to that one graph
-    /// (<see cref="ModelSha256"/>). A name with no thresholds is always asked about.
+    /// (<see cref="ModelSha256"/>). A name in <c>censor_always</c> is censored whatever its score: its
+    /// thresholds are both negative infinity. A name with no thresholds is always asked about.
     /// </summary>
     public sealed class NameThresholds
     {
@@ -60,6 +61,14 @@ namespace Genizah.Core
                     throw new InvalidDataException($"{path}: {e.Name} needs leave_below <= censor_at");
                 byName[e.Name] = (e.CensorAt, e.LeaveBelow);
             }
+            foreach (string name in file.CensorAlways ?? new string[0])
+            {
+                if (!NameFinder.NameOrder.Contains(name))
+                    throw new InvalidDataException($"{path}: unknown name {name}");
+                if (byName.ContainsKey(name))
+                    throw new InvalidDataException($"{path}: {name} is listed twice");
+                byName[name] = (double.NegativeInfinity, double.NegativeInfinity);
+            }
             return new NameThresholds(file.ModelSha256, byName);
         }
 
@@ -68,6 +77,7 @@ namespace Genizah.Core
         {
             [DataMember(Name = "model_sha256")] public string ModelSha256 { get; set; }
             [DataMember(Name = "names")] public Entry[] Names { get; set; }
+            [DataMember(Name = "censor_always")] public string[] CensorAlways { get; set; }
         }
 
         [DataContract]

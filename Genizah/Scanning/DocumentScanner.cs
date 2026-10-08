@@ -55,14 +55,14 @@ namespace Genizah.Scanning
             return doc.Range(chars[rawStart + 1].Start, chars[rawEnd].End);
         }
 
-        /// <summary>Up to <paramref name="width"/> characters of the span's context on each side, on one line.</summary>
+        /// <summary>
+        /// Up to <paramref name="width"/> letters of the span's context on each side, cut at word
+        /// boundaries (<see cref="Quote"/>), on one line.
+        /// </summary>
         public static void Context(string text, int rawStart, int rawEnd, int width, out string before, out string after)
         {
-            int from = Math.Max(0, rawStart - width), to = Math.Min(text.Length, rawEnd + width);
-            before = OneLine(text.Substring(from, rawStart - from));
-            after = OneLine(text.Substring(rawEnd, to - rawEnd));
-            if (from > 0) before = "…" + before;
-            if (to < text.Length) after += "…";
+            before = OneLine(Quote.Before(text, rawStart, width));
+            after = OneLine(Quote.After(text, rawEnd, width));
         }
 
         private static string OneLine(string s)

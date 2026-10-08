@@ -1,5 +1,5 @@
 {
- "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). A name not listed is always asked about. Written by tools/make_thresholds.py.",
+ "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). Every name in censor_always is censored whatever its score. A name in neither is always asked about. Written by tools/make_thresholds.py.",
  "model_sha256": "590e92a925fab246a46a91ab37f17f30d4a4d690aaeeea7d9e6ec7897fb4a3dc",
  "source": "classifier/scratch/2026-10-04/phase4/thresholds.json (classifier/docs/THRESHOLDS-2026-10-05.md)",
  "ask_budget": 0.1,
@@ -24,8 +24,10 @@
    "leave_below": -8.934983730316162
   }
  ],
+ "censor_always": [
+  "havaya"
+ ],
  "ask_always": [
-  "havaya",
   "adnut",
   "tsvaot",
   "ehye",

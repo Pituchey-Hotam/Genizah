@@ -1,5 +1,21 @@
 # Worklog
 
+## 2026-10-08 — יהוה always censored
+
+At the owner's call, `havaya` is now censored whatever its score, instead of always asked
+about: `make_thresholds.py` takes `NAME=always`, writing `censor_always` into
+`model/thresholds.json`, and `NameThresholds` loads it as negative-infinity thresholds. A
+candidate whose Word range doesn't match the scored text is still asked about.
+→ `CLAUDE.md` (Layout: `Scanning/Verdict`, `tools/make_thresholds.py`)
+
+## 2026-10-08 — Word-boundary quotes and keyboard adjudication in the results pane
+
+Context quotes are now cut at word boundaries and measured in letters, not characters
+(`Genizah.Core.Quote`, tested), and the details no longer show a doubled "……". The pane takes
+צ/C to censor and ה/L to leave or undo, then moves to the next row; a button click hands focus
+back to the list. Built and unit-tested, not yet tried by hand in Word.
+→ `CLAUDE.md` (Layout: `Results/`, `Quote`)
+
 ## 2026-10-08 — The relabelled fit, with per-name thresholds
 
 The add-in now ships the 2026-10-02 relabel's fit (`590e92a9…`; vectors regenerated, 125 tests

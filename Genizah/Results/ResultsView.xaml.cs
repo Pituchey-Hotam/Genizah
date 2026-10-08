@@ -123,23 +123,77 @@ namespace Genizah.Results
 
         private void Censor_Click(object sender, RoutedEventArgs e)
         {
-            Act(r => r.Censor(), "צנזור שם");
+            Censor();
+            FocusSelected();
         }
 
         private void Leave_Click(object sender, RoutedEventArgs e)
         {
-            Act(r => r.Leave(), "ביטול צנזור שם");
+            Leave();
+            FocusSelected();
         }
 
-        private void Act(Action<SearchResult> action, string undoName)
+        /// <summary>
+        /// The shortcuts: צ censors, ה leaves (or undoes a censor), and either moves on to the next
+        /// result. By the character typed, so C and L do the same on an English layout.
+        /// </summary>
+        private void View_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             if (!(details.DataContext is ResultItem item)) return;
+            bool acted;
+            switch (e.Text.ToLowerInvariant())
+            {
+                case "צ": case "c": acted = item.CanCensor && Censor(); break;
+                case "ה": case "l": acted = Leave(); break;
+                default: return;
+            }
+            e.Handled = true;
+            if (acted)
+                SelectNextResult(item);
+            FocusSelected();
+        }
+
+        private bool Censor() => Act(r => r.Censor(), "צנזור שם");
+
+        private bool Leave() => Act(r => r.Leave(), "ביטול צנזור שם");
+
+        /// <summary>Selects the result after <paramref name="item"/> in the list, if there is one shown.</summary>
+        private void SelectNextResult(ResultItem item)
+        {
+            for (int i = items.IndexOf(item) + 1; i < items.Count; i++)
+            {
+                if (items[i] is ResultItem next)
+                {
+                    list.SelectedItem = next;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gives the selected row the keyboard focus, so the arrows and shortcuts keep working after
+        /// a button click (the clicked button may have just been hidden).
+        /// </summary>
+        private void FocusSelected()
+        {
+            if (list.SelectedItem == null) return;
+            list.ScrollIntoView(list.SelectedItem);
+            list.UpdateLayout();
+            (list.ItemContainerGenerator.ContainerFromItem(list.SelectedItem) as ListBoxItem)?.Focus();
+        }
+
+        /// <returns>Whether the action ran; false if Word refused it.</returns>
+        private bool Act(Action<SearchResult> action, string undoName)
+        {
+            if (!(details.DataContext is ResultItem item)) return false;
+            bool done = false;
             var undo = Globals.ThisAddIn.Application.UndoRecord;
             undo.StartCustomRecord(undoName);
             try
             {
                 action(item.Result);
                 item.Result.Highlight();
+                done = true;
             }
             catch (COMException ex)
             {
@@ -152,6 +206,7 @@ namespace Genizah.Results
             item.Refresh();
             ShowSummary();
             ResultChanged?.Invoke(this, EventArgs.Empty);
+            return done;
         }
 
         private void ShowSummary()

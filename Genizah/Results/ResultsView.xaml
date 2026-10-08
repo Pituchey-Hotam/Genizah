@@ -4,7 +4,8 @@
              xmlns:local="clr-namespace:Genizah.Results"
              FlowDirection="RightToLeft"
              FontFamily="Segoe UI" FontSize="12"
-             TextOptions.TextFormattingMode="Display">
+             TextOptions.TextFormattingMode="Display"
+             PreviewTextInput="View_PreviewTextInput">
     <UserControl.Resources>
         <!-- Office's Fluent neutrals, so the pane sits with Word's own. -->
         <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
@@ -133,7 +134,7 @@
                 </Grid.ColumnDefinitions>
                 <Ellipse x:Name="mark" Grid.Column="1" Width="8" Height="8" Fill="{StaticResource PendingMark}"
                          VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBlock x:Name="snippet" Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                <TextBlock x:Name="snippet" Grid.Column="2" VerticalAlignment="Center" TextTrimming="WordEllipsis">
                     <Run Text="{Binding SnippetBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding SnippetAfter, Mode=OneWay}"/>
                 </TextBlock>
             </Grid>
@@ -166,6 +167,7 @@
                  VirtualizingPanel.VirtualizationMode="Recycling"
                  VirtualizingPanel.ScrollUnit="Pixel"
                  SelectionMode="Single"
+                 IsTextSearchEnabled="False"
                  SelectionChanged="List_SelectionChanged"
                  KeyDown="List_KeyDown"/>
 
@@ -180,13 +182,18 @@
                 <TextBlock Text="{Binding ReplacementText}" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,10"/>
                 <StackPanel Orientation="Horizontal">
                     <Button Content="צנזר" Style="{StaticResource PrimaryButton}" Click="Censor_Click"
+                            ToolTip="צנזר (צ)"
                             Visibility="{Binding CanCensor, Converter={StaticResource Visible}}"/>
                     <Button Content="השאר" Style="{StaticResource FlatButton}" Click="Leave_Click"
-                            ToolTip="אין זה שם קודש: להשאיר כפי שנכתב"
+                            ToolTip="אין זה שם קודש: להשאיר כפי שנכתב (ה)"
                             Visibility="{Binding CanLeave, Converter={StaticResource Visible}}"/>
                     <Button Content="בטל צנזור" Style="{StaticResource FlatButton}" Click="Leave_Click"
+                            ToolTip="בטל צנזור (ה)"
                             Visibility="{Binding CanUndo, Converter={StaticResource Visible}}"/>
                 </StackPanel>
+                <TextBlock Text="מקלדת: ↑↓ מעבר · צ צנזור · ה השארה או ביטול צנזור"
+                           Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
+                           TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
     </Grid>

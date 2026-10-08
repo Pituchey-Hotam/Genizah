@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Genizah.Core;
 using Genizah.Scanning;
 
 namespace Genizah.Results
@@ -44,7 +45,7 @@ namespace Genizah.Results
     /// <summary>One result as the list shows it: a one-line snippet, and the details below the list.</summary>
     public class ResultItem : INotifyPropertyChanged
     {
-        /// <summary>How much context a row shows on each side of the name; the details show all of it.</summary>
+        /// <summary>How many letters of context a row shows on each side of the name; the details show all of it.</summary>
         private const int SnippetWidth = 14;
 
         public SearchResult Result { get; }
@@ -55,10 +56,10 @@ namespace Genizah.Results
         }
 
         public string Name => Result.OriginalText;
-        public string SnippetBefore => "…" + Tail(Result.ContextBefore, SnippetWidth).TrimStart();
-        public string SnippetAfter => Head(Result.ContextAfter, SnippetWidth).TrimEnd() + "…";
-        public string ContextBefore => "…" + Result.ContextBefore;
-        public string ContextAfter => Result.ContextAfter + "…";
+        public string SnippetBefore => Quote.Before(Result.ContextBefore, Result.ContextBefore.Length, SnippetWidth);
+        public string SnippetAfter => Quote.After(Result.ContextAfter, 0, SnippetWidth);
+        public string ContextBefore => Result.ContextBefore;
+        public string ContextAfter => Result.ContextAfter;
 
         public ResultState State => Result.State;
         public bool CanCensor => Result.State != ResultState.Censored;
@@ -103,8 +104,5 @@ namespace Genizah.Results
             // An empty name means every property.
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
         }
-
-        private static string Tail(string s, int n) => s.Length <= n ? s : s.Substring(s.Length - n);
-        private static string Head(string s, int n) => s.Length <= n ? s : s.Substring(0, n);
     }
 }

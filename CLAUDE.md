@@ -37,8 +37,9 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     the scan to Word's UI thread, since calls from another process arrive on an RPC thread.
   - `Scanning/Verdict`: per name, censor at or above its `censor_at`, leave below its
     `leave_below`, ask in between. The thresholds are `model/thresholds.json`, read once per
-    scan. A name with no thresholds is always Ask, and so is every name if the file is missing
-    or invalid (the pane then says why).
+    scan. A name in its `censor_always` (currently `havaya`) is always Censor. A name with no
+    thresholds is always Ask, and so is every name if the file is missing or invalid (the pane
+    then says why).
   - `Results/`: one `SearchResult` per candidate (hidden bookmark, model verdict, and a state:
     pending, censored or left). The pane is WPF (`ResultsView.xaml`), hosted in the task pane's
     Windows Forms `ResultsControl` through an `ElementHost`. It's styled like Word's
@@ -47,7 +48,11 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     below the list. Selecting a row selects the name in the document. The list is flat (each
     group's rows follow its `GroupHeader` while it's expanded), so it stays virtualized with
     recycled, pixel-scrolled rows. Moving real child windows per row, as the Windows Forms pane
-    did, scrolled slowly and tore.
+    did, scrolled slowly and tore. Every quote (row snippet, details context) is cut at word
+    boundaries by `Genizah.Core.Quote`. Keyboard: the arrows move, Enter/Space toggle a group,
+    צ (or C) censors and ה (or L) leaves or undoes a censor, then moves to the next row. The
+    shortcuts match the typed character (`PreviewTextInput`), not the physical key, so they
+    follow the keyboard layout.
   - `NameInfo.cs`: display names, base forms and the user's replacement per name. It no longer
     finds anything: candidates come from `Genizah.Core`.
 - `Genizah.Core/`: netstandard2.0, with no Office dependency. It holds the model's input
@@ -72,6 +77,9 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
     form into the chosen replacement (אלהים → אלקים) and makes only that edit to the
     candidate's own letters, so proclitics, suffixes, extra matres and nikud stay
     (ואֱלֹהֵינוּ → ואֱלֹקינוּ). It isn't part of the model's pipeline contract.
+  - `Quote`: the results pane's context quotes, up to a width in letters (nikud rides on its
+    letter), cut at whitespace, control characters or maqaf, with "…" where the text goes on.
+    Not part of the pipeline either.
   - `NameThresholds`: loads `model/thresholds.json`. Thresholds are doubles, compared with the
     float logit as a double: each sits between two logits, and a float could round onto one.
 - `Genizah.Core.Tests/`: xUnit, run on both net48 (the add-in's runtime and Regex engine) and
@@ -82,8 +90,10 @@ Bible) or are written by hand. Full-data vectors live in the git-ignored
   from what the C# port implements.
 - `tools/make_thresholds.py`: writes `model/thresholds.json` from the classifier's phase 4
   (`classifier/docs/THRESHOLDS-2026-10-05.md`) at the owner's false-censor tolerance per name
-  (`py -3.13 tools/make_thresholds.py el=0.03 elohim=0.10 eloha=0.05`, the current choice).
-  Names given no tolerance are always asked about. It refuses to write thresholds for any graph
+  (`py -3.13 tools/make_thresholds.py el=0.03 elohim=0.10 eloha=0.05 havaya=always`, the
+  current choice). `NAME=always` censors every candidate of that name whatever its score (in
+  `NameThresholds`, both its thresholds are negative infinity). Names given neither are always
+  asked about. It refuses to write thresholds for any graph
   other than the one phase 4 scored, and a test checks the file against `manifest.json`.
 - `tools/benchmark/run_benchmark.ps1`: times a scan in Word, phase by phase, on OSHB documents
   of increasing size (`plain`, and `mixed`, which has a table and fields). It needs a Debug build
