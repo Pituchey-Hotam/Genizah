@@ -39,6 +39,11 @@
          version, the redirects go in Genizah.dll.config, which VSTO loads as the add-in's config. -->
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <!-- The release version, MAJOR.MINOR.PATCH, from ../VERSION: a merge to master that changes it
+         becomes a GitHub release (.github/workflows/release.yml). ApplicationVersion stamps the
+         .vsto and .dll.manifest; the assembly attributes are written by WriteVersionInfo below. -->
+    <GenizahVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\VERSION').Trim())</GenizahVersion>
+    <ApplicationVersion>$(GenizahVersion).0</ApplicationVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Genizah.Core\Genizah.Core.csproj">
@@ -53,7 +58,15 @@
   </ItemGroup>
   <ItemGroup>
     <!-- The shipping model and its per-name thresholds. The .onnx file is git-ignored: copy it into ../model/ first. -->
-    <Content Include="..\model\*.onnx;..\model\vocab.txt;..\model\thresholds.json">
+    <!-- manifest.json names the graph's sha256, which is how a release finds its model. -->
+    <Content Include="..\model\vocab.txt;..\model\thresholds.json;..\model\manifest.json">
+      <Link>model\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Releases build with IncludeModelGraph=false: the graph is its own GitHub release
+         (tools/dist/), and a file the signed .dll.manifest lists can't be left out of the
+         package. -->
+    <Content Include="..\model\*.onnx" Condition="'$(IncludeModelGraph)' != 'false'">
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -288,6 +301,18 @@
       <None Remove="@(_OnnxRuntimeNative)" />
       <Content Include="@(_OnnxRuntimeNative)" />
     </ItemGroup>
+  </Target>
+  <!-- The assembly's version attributes, from ../VERSION (see GenizahVersion). -->
+  <Target Name="WriteVersionInfo" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_VersionAttribute Include="System.Reflection.AssemblyVersionAttribute"><_Parameter1>$(GenizahVersion).0</_Parameter1></_VersionAttribute>
+      <_VersionAttribute Include="System.Reflection.AssemblyFileVersionAttribute"><_Parameter1>$(GenizahVersion).0</_Parameter1></_VersionAttribute>
+      <_VersionAttribute Include="System.Reflection.AssemblyInformationalVersionAttribute"><_Parameter1>$(GenizahVersion)</_Parameter1></_VersionAttribute>
+    </ItemGroup>
+    <WriteCodeFragment Language="C#" AssemblyAttributes="@(_VersionAttribute)" OutputFile="$(IntermediateOutputPath)VersionInfo.g.cs">
+      <Output TaskParameter="OutputFile" ItemName="Compile" />
+      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+    </WriteCodeFragment>
   </Target>
   <!-- This section defines VSTO properties that describe the host-changeable project properties. -->
   <ProjectExtensions>

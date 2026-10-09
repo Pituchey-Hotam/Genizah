@@ -411,3 +411,5 @@ Genizah.Core.Tests/testdata/local/
 model/*.onnx
 # Benchmark documents and timings (tools/benchmark): generated locally.
 tools/benchmark/out/
+# Release packages (tools/dist/package.ps1).
+tools/dist/out/

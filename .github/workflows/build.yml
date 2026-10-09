@@ -1,0 +1,70 @@
+# Builds the add-in, runs Genizah.Core.Tests against the shipping model, and uploads the release
+# package (tools/dist/package.ps1) as the "dist" artifact. Called by ci.yml and release.yml.
+name: Build and test
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: The VERSION file's MAJOR.MINOR.PATCH
+        value: ${{ jobs.build.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # The image with VS 2022 Enterprise and its Office/SharePoint workload, which VSTO builds need.
+    runs-on: windows-2025
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: microsoft/setup-msbuild@v3
+
+      # Genizah.Core.Tests also targets net7.0, which the image's newer SDKs build but can't run.
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 7.0.x
+
+      - name: Read VERSION and the model's sha256
+        id: meta
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "VERSION must be MAJOR.MINOR.PATCH, not '$v'" }
+          $sha = (Get-Content model/manifest.json -Raw | ConvertFrom-Json).model_sha256
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "model_sha256=$sha" >> $env:GITHUB_OUTPUT
+
+      # Built before the graph is fetched, and told to leave it out: the graph ships as its own
+      # release, and the signed .dll.manifest must not list it.
+      - name: Build the add-in
+        run: msbuild Genizah/Genizah.csproj -restore -p:Configuration=Release -p:IncludeModelGraph=false -v:minimal
+
+      - name: Package
+        shell: pwsh
+        run: ./tools/dist/package.ps1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: tools/dist/out/
+          if-no-files-found: error
+
+      - name: Cache the model graph
+        uses: actions/cache@v6
+        with:
+          path: model/*.onnx
+          key: model-${{ steps.meta.outputs.model_sha256 }}
+
+      # Fails if the graph manifest.json names has no model-<sha> release (tools/dist/publish_model.ps1),
+      # so the classifier tests never skip here.
+      - name: Fetch the model graph
+        shell: pwsh
+        run: ./tools/dist/fetch_model.ps1
+
+      # The local parity tests skip: their full-data files (testdata/local/) aren't distributed.
+      - name: Test
+        run: dotnet test Genizah.Core.Tests -c Release

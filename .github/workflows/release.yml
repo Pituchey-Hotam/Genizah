@@ -1,0 +1,52 @@
+# A push to master (a merged release PR) becomes the GitHub release v<VERSION>, marked latest,
+# with the add-in zip and model-manifest.json. The model graph is not attached: it is its own
+# release, model-<sha256[:12]>, which model-manifest.json names.
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          tag="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+            echo "::error file=VERSION::$tag is already released: a merge to master must bump VERSION"; exit 1
+          fi
+          # Notes cover the PRs since the last add-in release, not since a model-* release.
+          previous=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          gh release create "$tag" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "Genizah $VERSION" \
+            --generate-notes ${previous:+--notes-start-tag "$previous"} \
+            --latest
