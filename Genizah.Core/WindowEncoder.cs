@@ -21,7 +21,7 @@ namespace Genizah.Core
     }
 
     /// <summary>
-    /// Builds the classifier's input for one candidate, as training did (berel3.py
+    /// Builds the classifier's input for one candidate, as training did (its
     /// encode_rows): the window normalize(left)[-32:] + target + normalize(right)[:32],
     /// tokenized, [CLS] ... [SEP] cut to 128 ids, and a target mask over every piece whose
     /// span overlaps the target.

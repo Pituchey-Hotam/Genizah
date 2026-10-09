@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The version tools/make_vectors.py scores the vectors with (model/manifest.json): the
+    <!-- The version the test vectors' logits were scored with (model/manifest.json): the
          graph's 4-bit embedding table is a contrib op, whose kernel can change between releases. -->
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
   </ItemGroup>

@@ -29,36 +29,36 @@ namespace Genizah.Core
     }
 
     /// <summary>
-    /// Finds the candidates the classifier decides on. A port of the labeller's undashed pass,
-    /// so the add-in sees exactly the occurrences both training datasets were built from:
-    /// the patterns are dataset/olah/extract/names.py UNDASHED_PATTERNS, and the scan is
-    /// dataset/olah/label/occurrences.py _undashed_pass (longest span wins, NameOrder breaks
-    /// ties, spans never overlap). Built piece by piece as names.py builds them, so the
-    /// resulting pattern strings can be compared with Python's exactly (Genizah.Core.Tests).
+    /// Finds the candidates the classifier decides on. A port of the training code's candidate
+    /// finder, so the add-in sees exactly the occurrences the training data was built from:
+    /// the patterns are its UNDASHED_PATTERNS, and the scan is its _undashed_pass (longest span
+    /// wins, NameOrder breaks ties, spans never overlap). Built piece by piece as the training
+    /// code builds them, so the resulting pattern strings can be compared with Python's exactly
+    /// (Genizah.Core.Tests).
     ///
     /// Run it on normalized text (<see cref="TextNormalizer"/>): nikud is gone there, so a mark
     /// can't hide a word boundary (the אל inside a vocalized ישראל), and maqaf is a space.
     /// </summary>
     public static class NameFinder
     {
-        /// <summary>label/patterns.py NAME_ORDER: the tie-break between equal spans.</summary>
+        /// <summary>The training code's NAME_ORDER: the tie-break between equal spans.</summary>
         public static readonly IReadOnlyList<string> NameOrder = new[]
         {
             "havaya", "elohim", "eloha", "adnut", "tsvaot", "ehye", "shaday", "el",
         };
 
-        // Hebrew letters, written once so the patterns below read like names.py.
+        // Hebrew letters, written once so the patterns below read like the training code's.
         private const string Alef = "א", Bet = "ב", Dalet = "ד", He = "ה", Vav = "ו",
             Yod = "י", FinalKaf = "ך", Kaf = "כ", Lamed = "ל", FinalMem = "ם",
             Mem = "מ", FinalNun = "ן", Nun = "נ", Tsadi = "צ", Shin = "ש", Tav = "ת";
 
         private static readonly string LetterClass = "[" + Alef + "-" + Tav + "]";
 
-        /// <summary>names.py MARK.</summary>
+        /// <summary>The training code's MARK.</summary>
         private static readonly string Mark = "[" + (char)0x0591 + "-" + (char)0x05C7 + "]";
 
         /// <summary>
-        /// names.py PROCLITIC_UNDASHED: ו, then ש/כש only if another proclitic follows (a bare
+        /// The training code's PROCLITIC_UNDASHED: ו, then ש/כש only if another proclitic follows (a bare
         /// relative ש makes שאל, שאלה, שאהיה), then ב/ל/מ/כ, then ה.
         /// </summary>
         private static readonly string ProcliticUndashed =
@@ -66,7 +66,7 @@ namespace Genizah.Core
             + Bet + Lamed + Mem + Kaf + "]?" + He + "?";
 
         /// <summary>
-        /// names.py PROCLITIC_UNDASHED_BARE_SH, for יהוה and אלהים only (BARE_SH_NAMES): a bare
+        /// The training code's PROCLITIC_UNDASHED_BARE_SH, for יהוה and אלהים only (BARE_SH_NAMES): a bare
         /// ש is allowed there (שיהוה), since no ordinary word is שיהוה or שאלהים.
         /// </summary>
         private static readonly string ProcliticUndashedBareSh =
@@ -84,14 +84,14 @@ namespace Genizah.Core
         private static readonly string ElTailAlt = "(?:" + Yod + ")?";
 
         /// <summary>
-        /// names.py _ELOHIM_ARAMAIC_TAIL_ALT: Aramaic אלה's endings (אלהא, אלהין, אלהיא, אלהך,
+        /// The training code's _ELOHIM_ARAMAIC_TAIL_ALT: Aramaic אלה's endings (אלהא, אלהין, אלהיא, אלהך,
         /// אלהה, אלהכם, אלהכון, אלההם, אלההון, אלהנא), an alternative to elohim's own tail.
         /// </summary>
         private static readonly string ElohimAramaicTailAlt = "(?:" + Alef + "|" + Yod + FinalNun
             + "|" + Yod + Alef + "|" + FinalKaf + "|" + He + "|" + Kaf + FinalMem + "|" + Kaf + Vav + FinalNun
             + "|" + He + FinalMem + "|" + He + Vav + FinalNun + "|" + Nun + Alef + ")";
 
-        /// <summary>names.py SKELETONS: each name's letters, and which are optional.</summary>
+        /// <summary>The training code's SKELETONS: each name's letters, and which are optional.</summary>
         private static readonly Dictionary<string, (string Letter, bool Optional)[]> Skeletons =
             new Dictionary<string, (string, bool)[]>
             {
@@ -149,7 +149,7 @@ namespace Genizah.Core
                 + rest + "(?!" + LetterClass + ")";
         }
 
-        /// <summary>names.py _skeleton_body.</summary>
+        /// <summary>The training code's _skeleton_body.</summary>
         private static string SkeletonBody(IEnumerable<(string Letter, bool Optional)> letters)
         {
             var parts = new List<string>();
@@ -162,7 +162,7 @@ namespace Genizah.Core
             return string.Concat(parts);
         }
 
-        /// <summary>names.py _rest_for: everything after a name's first letter.</summary>
+        /// <summary>The training code's _rest_for: everything after a name's first letter.</summary>
         private static string RestFor(string name, (string Letter, bool Optional)[] letters)
         {
             switch (name)

@@ -405,7 +405,7 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio
 
 ### Genizah ###
-# Full-data parity vectors: they hold Olah text, which must never reach this (public) repo.
+# Full-data parity vectors (LocalParityTests): not distributed.
 Genizah.Core.Tests/testdata/local/
 # Model binaries are distributed separately; model/manifest.json records which one.
 model/*.onnx
@@ -413,3 +413,7 @@ model/*.onnx
 tools/benchmark/out/
 # Release packages (tools/dist/package.ps1).
 tools/dist/out/
+# Notes for one developer's workspace, which is laid out beyond this repo: kept on disk only.
+CLAUDE.local.md
+WORKLOG.md
+scratch/

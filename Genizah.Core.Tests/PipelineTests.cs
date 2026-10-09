@@ -9,7 +9,7 @@ namespace Genizah.Core.Tests
 {
     /// <summary>
     /// Raw text -> normalized text -> candidates -> model inputs, against the Python sources of
-    /// truth (testdata/pipeline.json, from tools/make_vectors.py).
+    /// truth (testdata/pipeline.json).
     /// </summary>
     public class PipelineTests
     {
@@ -81,8 +81,8 @@ namespace Genizah.Core.Tests
 
     /// <summary>
     /// The same checks over all the data, from the git-ignored testdata/local/ files: every
-    /// training row's input as the training code built it, and every Olah and OSHB text's
-    /// candidates. Skipped where those files haven't been generated.
+    /// training row's input as the training code built it, and every training text's
+    /// candidates. The files aren't distributed, so these skip without them.
     /// </summary>
     public class LocalParityTests
     {
@@ -90,7 +90,7 @@ namespace Genizah.Core.Tests
         public void EveryTrainingWindow()
         {
             string path = TestData.LocalPath("windows.jsonl");
-            Skip.IfNot(File.Exists(path), "run tools/make_vectors.py to generate testdata/local/");
+            Skip.IfNot(File.Exists(path), "testdata/local/ is not generated");
             var encoder = new WindowEncoder(TestData.Tokenizer);
             int rows = 0;
             var bad = new List<string>();
@@ -112,7 +112,7 @@ namespace Genizah.Core.Tests
         public void EveryCorpusText()
         {
             string path = TestData.LocalPath("scans.jsonl");
-            Skip.IfNot(File.Exists(path), "run tools/make_vectors.py to generate testdata/local/");
+            Skip.IfNot(File.Exists(path), "testdata/local/ is not generated");
             int texts = 0, candidates = 0;
             var bad = new List<string>();
             foreach (var doc in TestData.JsonLines(path))

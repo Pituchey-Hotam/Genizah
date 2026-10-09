@@ -35,7 +35,7 @@ namespace Genizah.Core
     ///
     /// Each window is scored alone. The int8 layers quantize activations with one scale over the
     /// whole batch, so batching windows together would make a name's score depend on what else
-    /// is in the document (tools/make_vectors.py scores its vectors the same way).
+    /// is in the document (the test vectors' logits are scored the same way).
     /// </summary>
     public sealed class NameClassifier : IDisposable
     {

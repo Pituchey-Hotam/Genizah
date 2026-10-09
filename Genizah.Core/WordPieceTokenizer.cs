@@ -28,7 +28,7 @@ namespace Genizah.Core
     ///
     /// On that input the tokenizer.json normalizer (NFD, lowercase, strip accents) changes
     /// nothing, except that a run of characters outside its allowed ranges, U+FFFD among them,
-    /// becomes "[UNK]". tools/make_vectors.py refuses a tokenizer.json whose configuration
+    /// becomes "[UNK]". The vectors' generator refuses a tokenizer.json whose configuration
     /// differs from what this class implements.
     /// </summary>
     public sealed class WordPieceTokenizer
@@ -58,7 +58,7 @@ namespace Genizah.Core
         /// <summary>
         /// Loads model/vocab.txt: one piece per LF-terminated line, line n being id n. Only LF
         /// ends a line; two pieces are control characters that other line readers split on.
-        /// No piece contains CR (tools/make_vectors.py checks), so a CR before the LF, from a
+        /// No piece contains CR (the vectors' generator checks), so a CR before the LF, from a
         /// checkout that converted line endings, is dropped.
         /// </summary>
         public static WordPieceTokenizer Load(string vocabPath)

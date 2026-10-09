@@ -31,15 +31,6 @@ namespace Genizah.Core.Tests
             Assert.True(output == TextNormalizer.Normalize(TextNormalizer.Normalize(input)), name);
         }
 
-        [SkippableFact]
-        public void VectorsMatchTheClassifiersCopy()
-        {
-            string source = Path.Combine(Path.GetDirectoryName(TestData.RepoRoot), "classifier", "tests", "vectors", "normalization.json");
-            Skip.IfNot(File.Exists(source), "the classifier repo is not checked out beside this one");
-            Assert.True(File.ReadAllBytes(source).SequenceEqual(File.ReadAllBytes(TestData.TestDataPath("normalization.json"))),
-                "testdata/normalization.json is stale: rerun tools/make_vectors.py");
-        }
-
         [Fact]
         public void AstralCharacterIsOneUnknown()
         {

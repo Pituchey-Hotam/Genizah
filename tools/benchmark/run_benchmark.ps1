@@ -3,7 +3,7 @@
 Times the add-in's scan, phase by phase, on OSHB documents of increasing size.
 
 .DESCRIPTION
-Builds Word documents from the OSHB corpus (../dataset/oshb/corpus, one paragraph per verse),
+Builds Word documents from the OSHB corpus (-Corpus, one paragraph per verse),
 opens each in the running Word (starting one if none is), and starts a scan through the Debug
 build's automation hook (Scanning/BenchmarkHook.cs). The add-in writes the scan's timings to a
 file when it ends; this script waits for that file, never calling into Word mid-scan, since
@@ -18,8 +18,8 @@ Documents are cached in out/docs; each run's timings are appended to out/results
 The scan uses the results pane of the Word it runs in, clearing whatever it showed.
 
 .EXAMPLE
-powershell -File tools\benchmark\run_benchmark.ps1 -Label baseline
-powershell -File tools\benchmark\run_benchmark.ps1 -Sizes 400000,1600000 -Layouts plain
+powershell -File tools\benchmark\run_benchmark.ps1 -Corpus <oshb corpus> -Label baseline
+powershell -File tools\benchmark\run_benchmark.ps1 -Corpus <oshb corpus> -Sizes 400000,1600000 -Layouts plain
 #>
 param(
     # Target document sizes, in characters of text. Documents stop at the first verse past it.
@@ -30,7 +30,10 @@ param(
     [string]$Label = '',
     # Per scan. A scan that runs out stops the benchmark, and leaves Word busy until it ends.
     [int]$TimeoutMinutes = 10,
-    [string]$Corpus = (Join-Path $PSScriptRoot '..\..\..\dataset\oshb\corpus')
+    # A folder of .jsonl files, one chapter per LF-terminated line, its text in "body" with
+    # each verse ending in ':'.
+    [Parameter(Mandatory = $true)]
+    [string]$Corpus
 )
 
 $ErrorActionPreference = 'Stop'

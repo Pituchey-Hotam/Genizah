@@ -9,12 +9,12 @@ namespace Genizah.Core.Tests
 {
     /// <summary>
     /// The model's logits under ONNX Runtime in .NET, against the ones Python's onnxruntime gave
-    /// the same windows (testdata/pipeline.json, from tools/make_vectors.py). The .onnx file is
+    /// the same windows (testdata/pipeline.json). The .onnx file is
     /// git-ignored, so these skip until it is copied into model/.
     /// </summary>
     public class ClassifierTests
     {
-        // classifier/PLAN.md phase 5's bar. Same runtime version, same graph, one window per run.
+        // The port's bar. Same runtime version, same graph, one window per run.
         private const float Tolerance = 1e-5f;
 
         private static string ModelPath()

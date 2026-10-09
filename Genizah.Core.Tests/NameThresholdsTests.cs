@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Genizah.Core.Tests
 {
-    /// <summary>model/thresholds.json (tools/make_thresholds.py): it loads, and it belongs to the shipping graph.</summary>
+    /// <summary>model/thresholds.json: it loads, and it belongs to the shipping graph.</summary>
     public class NameThresholdsTests
     {
         private static NameThresholds Shipped() => NameThresholds.Load(TestData.Path("model", "thresholds.json"));
@@ -40,7 +40,7 @@ namespace Genizah.Core.Tests
             var t = Shipped();
             Assert.True(t.Temperature > 1);
             Assert.Equal(0.5, t.Probability(0f));
-            // classifier/docs/THRESHOLDS-2026-10-05.md: elohim's censor_at +7.05 is 0.977.
+            // The calibration's own figure: elohim's censor_at +7.05 is 0.977.
             Assert.Equal(0.977, t.Probability(7.053641f).Value, 3);
             Assert.Equal(1 - t.Probability(3f).Value, t.Probability(-3f).Value, 12);
         }

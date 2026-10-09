@@ -1,7 +1,6 @@
 {
- "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). Every name in censor_always is censored whatever its score. A name in neither is always asked about. Written by tools/make_thresholds.py.",
+ "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). Every name in censor_always is censored whatever its score. A name in neither is always asked about. temperature calibrates a logit into a probability, sigmoid(logit / temperature).",
  "model_sha256": "590e92a925fab246a46a91ab37f17f30d4a4d690aaeeea7d9e6ec7897fb4a3dc",
- "source": "classifier/scratch/2026-10-04/phase4/thresholds.json (classifier/docs/THRESHOLDS-2026-10-05.md)",
  "ask_budget": 0.1,
  "temperature": 1.8843330769663449,
  "names": [

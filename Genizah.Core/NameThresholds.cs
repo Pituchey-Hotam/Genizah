@@ -10,11 +10,11 @@ namespace Genizah.Core
     /// <summary>
     /// The logit thresholds per name that turn a score into a decision: censor at or above
     /// <c>censor_at</c>, leave below <c>leave_below</c>, ask in between. They are
-    /// model/thresholds.json (tools/make_thresholds.py), read off the shipping graph's
-    /// out-of-fold logits by the classifier's phase 4, so they belong to that one graph
+    /// model/thresholds.json, read off the shipping graph's out-of-fold logits when it was
+    /// calibrated, so they belong to that one graph
     /// (<see cref="ModelSha256"/>). A name in <c>censor_always</c> is censored whatever its score: its
     /// thresholds are both negative infinity. A name with no thresholds is always asked about.
-    /// The file's <c>temperature</c> (phase 4's) makes a logit readable as a probability.
+    /// The file's <c>temperature</c>, from the same calibration, makes a logit readable as a probability.
     /// </summary>
     public sealed class NameThresholds
     {

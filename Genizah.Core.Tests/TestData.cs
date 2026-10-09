@@ -9,7 +9,7 @@ using Genizah.Core;
 namespace Genizah.Core.Tests
 {
     /// <summary>
-    /// Locates the vectors tools/make_vectors.py writes. They're read in place rather than
+    /// Locates the test vectors. They're read in place rather than
     /// copied to the build output: the local files run to tens of megabytes.
     /// </summary>
     internal static class TestData

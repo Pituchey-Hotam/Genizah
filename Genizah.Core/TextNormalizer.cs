@@ -5,8 +5,8 @@ using System.Text;
 namespace Genizah.Core
 {
     /// <summary>
-    /// Text normalization: a port of classifier/clf/normalize.py, the contract described in
-    /// classifier/docs/NORMALIZATION.md. Every mapping is an explicit table, never a call into
+    /// Text normalization: a port of the training code's normalize(), the contract that
+    /// testdata/normalization.json pins. Every mapping is an explicit table, never a call into
     /// .NET's Unicode support, so the result can't depend on the runtime.
     ///
     /// Code points are written as numbers: the tables must survive editors and tools that would
@@ -23,7 +23,7 @@ namespace Genizah.Core
         private static readonly Dictionary<int, string> CharMap = BuildCharMap();
         private static readonly bool[] InAlphabet = BuildAlphabetTable();
 
-        /// <summary>normalize(text) from normalize.py.</summary>
+        /// <summary>The training code's normalize(text).</summary>
         public static string Normalize(string text)
         {
             return NormalizeWithOffsets(text).Text;
@@ -126,7 +126,7 @@ namespace Genizah.Core
             Ayin = 0x05E2, FinalPe = 0x05E3, Pe = 0x05E4, Tsadi = 0x05E6, Qof = 0x05E7,
             Resh = 0x05E8, Shin = 0x05E9, Tav = 0x05EA;
 
-        /// <summary>CHAR_MAP from normalize.py, in the same order, put by put.</summary>
+        /// <summary>The training code's CHAR_MAP, in the same order, put by put.</summary>
         private static Dictionary<int, string> BuildCharMap()
         {
             var m = new Dictionary<int, string>();

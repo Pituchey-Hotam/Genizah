@@ -1,5 +1,5 @@
 {
-  "about": "Shared test vectors for docs/NORMALIZATION.md. Every implementation (Python, C#, JS) must pass all of them. 'normalize' cases are written by hand from the spec; 'encode' cases pin the ids.",
+  "about": "Shared test vectors for the text normalization contract. Every implementation (Python, C#, JS) must pass all of them. 'normalize' cases are written by hand from the spec; 'encode' cases pin the ids.",
   "normalize": [
     {"case": "vocalized verse: marks stripped, maqaf becomes a space", "input": "ו\u05b7י\u05b0ד\u05b7ב\u05bc\u05b5\u05a5ר א\u05b6ל\u05beמ\u05b9ש\u05c1\u05b6\u0596ה", "output": "וידבר אל משה"},
     {"case": "sof pasuq becomes a colon", "input": "א\u05b1ל\u05b9ה\u05b4\u0591ים\u05c3", "output": "אלהים:"},
