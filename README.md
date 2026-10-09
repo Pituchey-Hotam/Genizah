@@ -1,0 +1,60 @@
+# Genizah
+
+A Word add-in that finds divine names in Hebrew documents and censors them. Once written, such a
+name can't be casually erased or discarded, so a document meant to be thrown away should carry a
+modified spelling instead (אלהים → אלקים).
+
+Not every occurrence is a divine name: אל is also "to", and אלהים can mean judges or foreign gods.
+So a classifier scores each candidate in context, and the add-in censors it, leaves it, or asks
+you.
+
+## Names in scope
+
+| id | name |
+|---|---|
+| `havaya` | יהוה |
+| `elohim` | אלהים |
+| `eloha` | אלוה |
+| `el` | אל |
+| `adnut` | אדני |
+| `tsvaot` | צבאות |
+| `ehye` | אהיה |
+| `shaday` | שדי |
+
+`havaya` is always censored. The others are censored or left when the model is confident, and
+asked about otherwise.
+
+## Using it
+
+**צנזר שמות** on the גניזה ribbon group scans the document. The results pane groups the names into
+Ask, Censor and Leave, with each one's context and the model's probability that it's divine.
+Selecting a row selects the name in the document.
+
+Keyboard: the arrows move, Enter/Space opens or closes a group, צ (or C) censors and ה (or L)
+leaves or undoes a censor, then moves to the next row.
+
+The group's dialog launcher opens **סגנון צנזור**, where you choose each name's replacement.
+
+## Building
+
+Requires Visual Studio with the Office/SharePoint development workload.
+
+```
+powershell -File tools/dist/fetch_model.ps1      # the model graph (~100 MB, not in git)
+MSBuild.exe Genizah/Genizah.csproj -restore      # not `dotnet build`: VSTO needs MSBuild
+dotnet test Genizah.Core.Tests                   # net48 and net7.0
+```
+
+There's no installer yet: a release zip doesn't include the model graph. Run the add-in from
+Visual Studio.
+
+## Layout
+
+- `Genizah/`: the VSTO add-in (.NET Framework 4.8, x64): ribbon, scanning, results pane.
+- `Genizah.Core/`: the classifier's input pipeline and ONNX scoring, with no Office dependency
+  (netstandard2.0).
+- `Genizah.Core.Tests/`: xUnit, against test vectors generated from the training code.
+- `model/`: vocabulary, manifest and per-name thresholds. The `.onnx` graph is fetched.
+- `tools/`: release scripts (`dist/`) and a scan benchmark that drives Word (`benchmark/`).
+
+Releases: [`docs/RELEASING.md`](docs/RELEASING.md).
