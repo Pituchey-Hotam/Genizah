@@ -19,6 +19,19 @@ namespace Genizah
             InitializeComponent();
             rows.ItemsSource = names;
             checkForUpdates.IsChecked = Properties.Settings.Default.check_for_updates;
+            checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
+        }
+
+        /// <summary>
+        /// Right-to-left mirrors the whole check box, its check mark included. Its glyph alone goes
+        /// back to left-to-right, which undoes the mirroring; the box stays on the text's right.
+        /// </summary>
+        private static void UnmirrorCheckMark(System.Windows.Controls.CheckBox box)
+        {
+            box.ApplyTemplate();
+            // The glyph's grid in WPF's own templates; another theme may have none.
+            if (box.Template?.FindName("markGrid", box) is FrameworkElement mark)
+                mark.FlowDirection = FlowDirection.LeftToRight;
         }
 
         /// <summary>
