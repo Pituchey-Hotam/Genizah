@@ -53,7 +53,7 @@ downloads once, in the background, after the first start. See [`docs/RELEASING.m
 
 - `Genizah/`: the VSTO add-in (.NET Framework 4.8, x64): ribbon, scanning, results pane.
 - `Genizah.Core/`: the classifier's input pipeline and ONNX scoring, with no Office dependency
-  (netstandard2.0).
+  (netstandard2.0 and net48).
 - `Genizah.Core.Tests/`: xUnit, against test vectors generated from the training code.
 - `model/`: vocabulary, manifest and per-name thresholds. The `.onnx` graph is fetched.
 - `tools/`: release scripts (`dist/`) and a scan benchmark that drives Word (`benchmark/`).
