@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Genizah.Core;
 using Microsoft.ML.OnnxRuntime;
@@ -7,34 +9,98 @@ using Microsoft.ML.OnnxRuntime;
 namespace Genizah.Scanning
 {
     /// <summary>
-    /// Loads the classifier once per Word session, off the UI thread. The model files and ONNX
-    /// Runtime's native DLL ship beside Genizah.dll (Genizah.csproj).
+    /// Loads the classifier once per Word session, off the UI thread. The graph's vocabulary,
+    /// thresholds and manifest ship beside Genizah.dll, as does ONNX Runtime's native DLL
+    /// (Genizah.csproj). The graph itself is too large to ship with every update: it is in the
+    /// model store (%LOCALAPPDATA%\Genizah\models), downloaded from its GitHub release when it
+    /// isn't there yet. A development build has it beside Genizah.dll instead.
     /// </summary>
     internal static class ModelLoader
     {
-        private static readonly Lazy<Task<NameClassifier>> classifier =
-            new Lazy<Task<NameClassifier>>(() => Task.Run(() => Load()));
+        /// <summary>Where every model graph's GitHub release is (<see cref="ModelStore.ReleaseUrl"/>).</summary>
+        public const string ModelReleases = "https://github.com/Pituchey-Hotam/Genizah/releases/download/";
 
-        /// <summary>The session's classifier. A load that failed stays failed until Word restarts.</summary>
-        public static Task<NameClassifier> Classifier => classifier.Value;
+        public static readonly ModelStore Store = new ModelStore(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Genizah", "models"));
 
-        public static void StartLoading() => _ = classifier.Value;
+        /// <summary>Redirects are left to <see cref="ModelStore.DownloadAsync"/>, so a resumed download's range reaches the final server.</summary>
+        private static readonly HttpClient http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+        {
+            Timeout = TimeSpan.FromSeconds(60),
+        };
+
+        private static readonly object gate = new object();
+        private static Task<NameClassifier> classifier;
+        private static int downloading;
+
+        /// <summary>
+        /// The session's classifier. A load that failed is tried again the next time it's asked for,
+        /// since a download may fail only for now.
+        /// </summary>
+        public static Task<NameClassifier> Classifier
+        {
+            get
+            {
+                lock (gate)
+                {
+                    if (classifier == null || classifier.IsFaulted || classifier.IsCanceled)
+                        classifier = Task.Run(Load);
+                    return classifier;
+                }
+            }
+        }
+
+        public static void StartLoading() => _ = Classifier;
+
+        /// <summary>True while the classifier waits for its graph to download.</summary>
+        public static bool Downloading => Volatile.Read(ref downloading) != 0;
+
+        /// <summary>How far the classifier's graph download is, in bytes: raised off the UI thread.</summary>
+        public static event Action<long, long> DownloadProgress;
 
         // CodeBase, not Location: VSTO shadow-copies the add-in's assemblies elsewhere, and
-        // only the add-in's own folder has the model and the native DLL.
-        private static string AddInDir => Path.GetDirectoryName(new Uri(typeof(ModelLoader).Assembly.CodeBase).LocalPath);
+        // only the add-in's own folder has the model files and the native DLL.
+        public static string AddInDir => Path.GetDirectoryName(new Uri(typeof(ModelLoader).Assembly.CodeBase).LocalPath);
 
-        /// <summary>The model files: the graph, its vocabulary and its thresholds.</summary>
+        /// <summary>The model files: the graph's vocabulary, thresholds and manifest.</summary>
         public static string ModelDir => Path.Combine(AddInDir, "model");
 
-        private static NameClassifier Load()
+        /// <summary>The graph this version of the add-in needs (model/manifest.json).</summary>
+        public static ReleaseInfo Manifest => ReleaseInfo.Load(Path.Combine(ModelDir, "manifest.json"));
+
+        private static async Task<NameClassifier> Load()
         {
             PlaceNativeRuntime(AddInDir);
-            string modelDir = ModelDir;
-            string[] models = Directory.Exists(modelDir) ? Directory.GetFiles(modelDir, "*.onnx") : new string[0];
-            if (models.Length != 1)
-                throw new FileNotFoundException($"expected one .onnx model in {modelDir}, found {models.Length}");
-            return new NameClassifier(models[0], Path.Combine(modelDir, "vocab.txt"));
+            ReleaseInfo manifest = Manifest;
+            string graph = Path.Combine(ModelDir, manifest.ModelFile);
+            if (!File.Exists(graph))
+                graph = Store.Find(manifest);
+            if (graph == null)
+            {
+                Interlocked.Exchange(ref downloading, 1);
+                try
+                {
+                    graph = await Download(manifest, new Reporter((done, total) => DownloadProgress?.Invoke(done, total)));
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref downloading, 0);
+                }
+            }
+            return new NameClassifier(graph, Path.Combine(ModelDir, "vocab.txt"));
+        }
+
+        /// <summary>Puts a graph in the model store, if it isn't there already, and returns its path.</summary>
+        public static Task<string> Download(ReleaseInfo model, IProgress<(long Done, long Total)> progress = null,
+                                            CancellationToken cancel = default) =>
+            Store.DownloadAsync(http, ModelStore.ReleaseUrl(ModelReleases, model), model, progress, cancel);
+
+        /// <summary>Reports on the downloading thread, unlike Progress&lt;T&gt;, which posts to whatever context created it.</summary>
+        private sealed class Reporter : IProgress<(long Done, long Total)>
+        {
+            private readonly Action<long, long> report;
+            public Reporter(Action<long, long> report) => this.report = report;
+            public void Report((long Done, long Total) value) => report(value.Done, value.Total);
         }
 
         /// <summary>

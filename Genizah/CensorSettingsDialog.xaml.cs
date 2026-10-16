@@ -8,7 +8,7 @@ using System.Windows.Interop;
 namespace Genizah
 {
     /// <summary>
-    /// The censor style: the replacement each name is censored to.
+    /// The add-in's settings: the replacement each name is censored to, and whether to update.
     /// </summary>
     public partial class CensorSettingsDialog : Window
     {
@@ -18,6 +18,7 @@ namespace Genizah
         {
             InitializeComponent();
             rows.ItemsSource = names;
+            checkForUpdates.IsChecked = Properties.Settings.Default.check_for_updates;
         }
 
         /// <summary>
@@ -42,6 +43,7 @@ namespace Genizah
         {
             foreach (Row row in names)
                 row.Name.setSelectedReplacement(row.Replacement.Trim());
+            Properties.Settings.Default.check_for_updates = checkForUpdates.IsChecked == true;
             Properties.Settings.Default.Save();
             DialogResult = true;
         }

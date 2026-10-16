@@ -118,5 +118,17 @@ namespace Genizah.Properties {
                 this["name_replacement_tsvaot"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool check_for_updates {
+            get {
+                return ((bool)(this["check_for_updates"]));
+            }
+            set {
+                this["check_for_updates"] = value;
+            }
+        }
     }
 }

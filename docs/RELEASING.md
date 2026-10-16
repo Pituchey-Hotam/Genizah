@@ -67,7 +67,16 @@ The manifests are signed with `Genizah/Genizah_TemporaryKey.pfx`, a self-signed 
 an "unknown publisher" prompt once. Since installs trust this key, replacing it later means
 existing installs stop updating unless they first add the new key to their inclusion list.
 
+## Where it lives in the code
+
+- `Genizah/Updater.cs`: the once-per-session check, the model download first, then the silent
+  install. It only runs in an installed copy (one running from the ClickOnce store), never in a
+  development build, and the settings dialog can turn it off.
+- `Genizah/Scanning/ModelLoader.cs`: finds the graph beside the add-in (development builds) or
+  in the model store, `%LOCALAPPDATA%\Genizah\models\<sha256>\`, and downloads it there if it's
+  missing.
+- `Genizah.Core/ModelStore.cs`: the store itself: resumable, verified downloads.
+
 ## Not built yet
 
-- The add-in's update check, model download and silent install.
-- A setup `.exe` that includes the model, so a fresh install works without a download.
+A setup `.exe` that includes the model, so a fresh install works without a download.

@@ -7,7 +7,10 @@ Releases and CI: `docs/RELEASING.md`.
 
 - `Genizah/` (VSTO, net48, x64). The version is the root `VERSION`, stamped in at build time.
   We ship our own `onnxruntime.dll` beside `Genizah.dll`; `Scanning/ModelLoader` copies it into
-  VSTO's shadow-copy folder and finds the model through `CodeBase`, not `Location`.
+  VSTO's shadow-copy folder and finds the model files through `CodeBase`, not `Location`. The
+  graph is beside them only in a development build; an installed copy gets it from the model
+  store (`Genizah.Core/ModelStore`), downloading it if needed.
+  - `Updater`: installs updates itself, the new version's graph first (`docs/RELEASING.md`).
   - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
     `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
@@ -25,7 +28,8 @@ Releases and CI: `docs/RELEASING.md`.
   with, which isn't in this repo; the test vectors stand in for it. `TextNormalizer` →
   `NameFinder` → `WordPieceTokenizer`/`WindowEncoder` → `NameClassifier`. Outside the pipeline:
   `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `Quote`,
-  `NameThresholds`.
+  `NameThresholds`, `ModelStore` (with `ReleaseInfo`, which reads `model/manifest.json` and the
+  update site's `release.json`).
 - `Genizah.Core.Tests/`: `testdata/` vectors are from the Hebrew Bible or hand-written.
   `LocalParityTests` need undistributed data and skip.
 - `model/`: `vocab.txt`, `manifest.json`, `thresholds.json` and the fetched `.onnx` belong

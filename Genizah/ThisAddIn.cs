@@ -26,6 +26,9 @@ namespace Genizah
         private string reviewedText;
         private bool scanning;
 
+        /// <summary>Set once an update is installed for the next start: shown above the session's scan results.</summary>
+        private string updateNotice;
+
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
             resultsPane = this.CustomTaskPanes.Add(resultsControl, "תוצאות");
@@ -34,6 +37,16 @@ namespace Genizah
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             // Off the UI thread, so the first scan doesn't wait for it.
             ModelLoader.StartLoading();
+            var ui = new WindowsFormsSynchronizationContext();
+            _ = Updater.CheckAsync(version => ui.Post(_ => AnnounceUpdate(version), null));
+        }
+
+        /// <summary>Says so quietly: on Word's status bar now, and above the results of the next scan.</summary>
+        private void AnnounceUpdate(string version)
+        {
+            updateNotice = $"גרסה {version} של גניזה הותקנה, ותפעל מההפעלה הבאה של Word.";
+            try { Application.StatusBar = updateNotice; }
+            catch (Exception) { }
         }
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
@@ -107,6 +120,9 @@ namespace Genizah
         /// </summary>
         public bool ContainsNames(Word.Document doc)
         {
+            // A download can take minutes, and the print would wait on Word's UI thread meanwhile.
+            if (!ModelLoader.Classifier.IsCompleted && ModelLoader.Downloading)
+                throw new InvalidOperationException("המודל עדיין בהורדה.");
             Cursor.Current = Cursors.WaitCursor;
             try
             {
@@ -141,7 +157,7 @@ namespace Genizah
                     ClearResults();
                 NameClassifier classifier;
                 using (timings.Measure("load_model"))
-                    classifier = await ModelLoader.Classifier;
+                    classifier = await LoadClassifier();
 
                 string text;
                 using (timings.Measure("read_text"))
@@ -173,7 +189,7 @@ namespace Genizah
                     }
                     Thresholds thresholds = Thresholds.Load(out string problem);
                     await ApplyResults(doc, text, scored, thresholds, timings);
-                    string shown = string.Join("\n", new[] { problem, notice }.Where(s => s != null));
+                    string shown = string.Join("\n", new[] { problem, notice, updateNotice }.Where(s => s != null));
                     using (timings.Measure("pane"))
                         resultsControl.ShowSearchResults(ResultsList, shown.Length == 0 ? null : shown);
                 }
@@ -190,6 +206,32 @@ namespace Genizah
                 finished?.Invoke(timings);
             }
         }
+
+        /// <summary>
+        /// The session's classifier, showing the graph's download in the pane if it has to wait
+        /// for one: the first scan after an install without the graph, say.
+        /// </summary>
+        private async Task<NameClassifier> LoadClassifier()
+        {
+            Task<NameClassifier> loading = ModelLoader.Classifier;
+            if (loading.IsCompleted)
+                return await loading;
+            // Created here, on the UI thread, so its reports come back to it.
+            var progress = new Progress<(long Done, long Total)>(p =>
+                resultsControl.ShowProgress(DownloadStage, (int)(p.Done >> 20), p.Total > 0 ? (int)(p.Total >> 20) : 0));
+            Action<long, long> report = (done, total) => ((IProgress<(long, long)>)progress).Report((done, total));
+            ModelLoader.DownloadProgress += report;
+            try
+            {
+                return await loading;
+            }
+            finally
+            {
+                ModelLoader.DownloadProgress -= report;
+            }
+        }
+
+        private const string DownloadStage = "מוריד את המודל (פעם אחת, כ־100 MB)…";
 
         // A scan's stages, as the pane names them.
         private const string Stage1 = "שלב 1 מתוך 3: סורק את השמות במסמך…";

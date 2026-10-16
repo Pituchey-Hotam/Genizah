@@ -1,7 +1,7 @@
 <Window x:Class="Genizah.CensorSettingsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="סגנון צנזור"
+        Title="הגדרות גניזה"
         Icon="/Genizah;component/Resources/Settings.ico"
         FlowDirection="RightToLeft"
         FontFamily="Segoe UI" FontSize="12"
@@ -70,6 +70,13 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
+                    Padding="0,12,0,0" Margin="0,14,0,0">
+                <CheckBox x:Name="checkForUpdates" FontSize="13" VerticalContentAlignment="Center"
+                          Content="עדכן את גניזה אוטומטית"
+                          ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
+            </Border>
         </StackPanel>
     </DockPanel>
 </Window>

@@ -33,7 +33,8 @@ Selecting a row selects the name in the document.
 Keyboard: the arrows move, Enter/Space opens or closes a group, צ (or C) censors and ה (or L)
 leaves or undoes a censor, then moves to the next row.
 
-The group's dialog launcher opens **סגנון צנזור**, where you choose each name's replacement.
+The group's dialog launcher opens **הגדרות גניזה**, where you choose each name's replacement and
+whether the add-in updates itself.
 
 ## Building
 
@@ -45,9 +46,8 @@ MSBuild.exe Genizah/Genizah.csproj -restore      # not `dotnet build`: VSTO need
 dotnet test Genizah.Core.Tests                   # net48 and net7.0
 ```
 
-Releases install from https://pituchey-hotam.github.io/Genizah/Genizah.vsto, but the add-in
-can't download its model yet, so for now run it from Visual Studio. See
-[`docs/RELEASING.md`](docs/RELEASING.md).
+Releases install from https://pituchey-hotam.github.io/Genizah/Genizah.vsto. The model (~100 MB)
+downloads once, in the background, after the first start. See [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Layout
 
