@@ -29,15 +29,46 @@
     <LoadBehavior>3</LoadBehavior>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-    <BootstrapperComponentsLocation>HomeSite</BootstrapperComponentsLocation>
+    <!-- Releases are the build's bin\Release folder, not a ClickOnce publish (docs/RELEASING.md).
+         The add-in updates itself (Updater), so VSTO's own update check is off. -->
+    <UpdateEnabled>false</UpdateEnabled>
+    <!-- ONNX Runtime's build props copy its native DLL by PlatformTarget; without it, Windows' own,
+         older onnxruntime.dll in System32 gets loaded and crashes (see ../CLAUDE.md). x64 is what
+         Word runs as. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- If ONNX Runtime's managed dependencies (System.Memory and friends) ever disagree on a
+         version, the redirects go in Genizah.dll.config, which VSTO loads as the add-in's config. -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <!-- The release version, MAJOR.MINOR.PATCH, from ../VERSION: a merge to master that changes it
+         becomes a GitHub release (.github/workflows/release.yml). ApplicationVersion stamps the
+         .vsto and .dll.manifest; the assembly attributes are written by WriteVersionInfo below. -->
+    <GenizahVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\VERSION').Trim())</GenizahVersion>
+    <ApplicationVersion>$(GenizahVersion).0</ApplicationVersion>
   </PropertyGroup>
   <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.VSTORuntime.4.0">
-      <Visible>False</Visible>
-      <ProductName>Microsoft Visual Studio 2010 Tools for Office Runtime %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
+    <ProjectReference Include="..\Genizah.Core\Genizah.Core.csproj">
+      <Project>{F9A49AC3-F53E-4731-87EF-7CC76559090D}</Project>
+      <Name>Genizah.Core</Name>
+    </ProjectReference>
+    <!-- Referenced here too, not only through Genizah.Core: see PlatformTarget above. The version
+         the model's vectors are scored with (../model/manifest.json). -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime">
+      <Version>1.30.0</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The shipping model and its per-name thresholds. The .onnx file is git-ignored: copy it into ../model/ first. -->
+    <!-- manifest.json names the graph and its sha256, which is how CI fetches it. -->
+    <Content Include="..\model\vocab.txt;..\model\thresholds.json;..\model\manifest.json">
+      <Link>model\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- The graph is too large for git: tools/dist/fetch_model.ps1 puts it in model/. -->
+    <Content Include="..\model\*.onnx">
+      <Link>model\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <!--
@@ -108,7 +139,13 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Office.Tools.v4.0.Framework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -162,36 +199,46 @@
     <Compile Include="CensorControls.Designer.cs">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </Compile>
-    <Compile Include="CensorSettingsDialog.cs" />
-    <Compile Include="CensorSettingsDialog.Designer.cs">
-      <DependentUpon>CensorSettingsDialog.cs</DependentUpon>
+    <Compile Include="CensorSettingsDialog.xaml.cs">
+      <DependentUpon>CensorSettingsDialog.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Results\ResultControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Results\ResultControl.Designer.cs">
-      <DependentUpon>ResultControl.cs</DependentUpon>
-    </Compile>
+    <Compile Include="Results\ResultItems.cs" />
     <Compile Include="Results\ResultsControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Results\ResultsControl.Designer.cs">
-      <DependentUpon>ResultsControl.cs</DependentUpon>
+    <Compile Include="Results\ResultsView.xaml.cs">
+      <DependentUpon>ResultsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Results\SearchResult.cs" />
+    <Compile Include="AddInSettings.cs" />
     <Compile Include="NameInfo.cs" />
+    <Compile Include="Registration.cs" />
+    <Compile Include="Scanning\BenchmarkHook.cs" />
+    <Compile Include="Scanning\DocumentScanner.cs" />
+    <Compile Include="Scanning\InputLock.cs" />
+    <Compile Include="Scanning\ModelLoader.cs" />
+    <Compile Include="Scanning\PositionMap.cs" />
+    <Compile Include="Scanning\ScanTimings.cs" />
+    <Compile Include="Scanning\Verdict.cs" />
+    <Compile Include="Updater.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Include="CensorControls.resx">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Results\ResultControl.resx">
-      <DependentUpon>ResultControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Results\ResultsControl.resx">
-      <DependentUpon>ResultsControl.cs</DependentUpon>
-    </EmbeddedResource>
+    <Page Include="CensorSettingsDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Results\ResultsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Theme.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -201,17 +248,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <None Include="app.config" />
+    <None Include="Resources\CensorNames.png" />
+    <Resource Include="Resources\Settings.ico" />
     <None Include="Genizah_TemporaryKey.pfx" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -240,6 +279,27 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Include additional build rules for an Office application add-in. -->
   <Import Project="$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets" Condition="'$(VSToolsPath)' != ''" />
+  <!-- ONNX Runtime's props add its native DLL as a None item, which the ClickOnce manifest leaves
+       out: make it Content, so an installed add-in has it too, not only bin\. -->
+  <Target Name="PublishOnnxRuntimeNative" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <_OnnxRuntimeNative Include="@(None)" Condition="'%(None.Link)' == 'onnxruntime.dll'" />
+      <None Remove="@(_OnnxRuntimeNative)" />
+      <Content Include="@(_OnnxRuntimeNative)" />
+    </ItemGroup>
+  </Target>
+  <!-- The assembly's version attributes, from ../VERSION (see GenizahVersion). -->
+  <Target Name="WriteVersionInfo" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_VersionAttribute Include="System.Reflection.AssemblyVersionAttribute"><_Parameter1>$(GenizahVersion).0</_Parameter1></_VersionAttribute>
+      <_VersionAttribute Include="System.Reflection.AssemblyFileVersionAttribute"><_Parameter1>$(GenizahVersion).0</_Parameter1></_VersionAttribute>
+      <_VersionAttribute Include="System.Reflection.AssemblyInformationalVersionAttribute"><_Parameter1>$(GenizahVersion)</_Parameter1></_VersionAttribute>
+    </ItemGroup>
+    <WriteCodeFragment Language="C#" AssemblyAttributes="@(_VersionAttribute)" OutputFile="$(IntermediateOutputPath)VersionInfo.g.cs">
+      <Output TaskParameter="OutputFile" ItemName="Compile" />
+      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+    </WriteCodeFragment>
+  </Target>
   <!-- This section defines VSTO properties that describe the host-changeable project properties. -->
   <ProjectExtensions>
     <VisualStudio>

@@ -1,30 +1,36 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Windows.Forms.Integration;
 using Genizah.Results;
 
 namespace Genizah
 {
-    public partial class ResultsControl : UserControl
+    /// <summary>
+    /// The results pane, as the task pane holds it: a Windows Forms control around the WPF
+    /// <see cref="ResultsView"/>. WPF draws the whole list in one window and recycles its rows,
+    /// so it scrolls smoothly however many results there are.
+    /// </summary>
+    public class ResultsControl : UserControl
     {
+        private readonly ResultsView view = new ResultsView();
+
+        /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
+        public event EventHandler ResultChanged;
+
         public ResultsControl()
         {
-            InitializeComponent();
-            this.flowLayoutPanel1.Dock = DockStyle.Fill;
-            this.flowLayoutPanel1.AutoScroll = true;
+            Controls.Add(new ElementHost { Dock = DockStyle.Fill, Child = view });
+            view.ResultChanged += (sender, e) => ResultChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void UpdateSearchResults(List<SearchResult> results)
-        {
-            foreach (var result in results.OrderBy(x => x.Bookmark.Start))
-            {
-                ResultControl resultControl = new ResultControl(result);
-                resultControl.RemoveResultControlHandler += (sender, e) =>
-                {
-                    flowLayoutPanel1.Controls.Remove(resultControl);
-                };
-                flowLayoutPanel1.Controls.Add(resultControl);
-            }
-        }
+        /// <summary>Shows a message in place of results: what went wrong, say.</summary>
+        public void ShowMessage(string message) => view.ShowMessage(message);
+
+        /// <inheritdoc cref="ResultsView.ShowProgress"/>
+        public void ShowProgress(string stage, int done = 0, int total = 0) => view.ShowProgress(stage, done, total);
+
+        /// <inheritdoc cref="ResultsView.ShowSearchResults"/>
+        public void ShowSearchResults(List<SearchResult> results, string notice) => view.ShowSearchResults(results, notice);
     }
 }

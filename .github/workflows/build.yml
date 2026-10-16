@@ -1,0 +1,92 @@
+# Builds the add-in with its model graph, runs Genizah.Core.Tests against it, and uploads the
+# release's assets (tools/dist/package.ps1) as the "dist" artifact. Called by ci.yml and
+# release.yml.
+name: Build and test
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: The VERSION file's MAJOR.MINOR.PATCH
+        value: ${{ jobs.build.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # The image with VS 2022 Enterprise and its Office/SharePoint workload, which VSTO builds need.
+    # (windows-2025 has VS 18, whose Office build tasks fail to load their Hosting assembly.)
+    runs-on: windows-2022
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: microsoft/setup-msbuild@v3
+
+      # Genizah.Core.Tests also targets net7.0, which the image's newer SDKs build but can't run.
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 7.0.x
+
+      - name: Read VERSION and the model's sha256
+        id: meta
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "VERSION must be MAJOR.MINOR.PATCH, not '$v'" }
+          $sha = (Get-Content model/manifest.json -Raw | ConvertFrom-Json).model_sha256
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "model_sha256=$sha" >> $env:GITHUB_OUTPUT
+
+      - name: Cache the model graph
+        uses: actions/cache@v6
+        with:
+          path: model/*.onnx
+          key: model-${{ steps.meta.outputs.model_sha256 }}
+
+      # Before the build, which ships the graph. Fails if the graph manifest.json names has no
+      # model-<sha> release (tools/dist/publish_model.ps1), so the classifier tests never skip here.
+      - name: Fetch the model graph
+        shell: pwsh
+        run: ./tools/dist/fetch_model.ps1
+
+      # The build signs the manifests by the csproj's ManifestCertificateThumbprint, which it looks
+      # up in the user's certificate store.
+      - name: Import the signing certificate
+        shell: pwsh
+        run: Import-PfxCertificate -FilePath Genizah/Genizah_TemporaryKey.pfx -CertStoreLocation Cert:\CurrentUser\My | Out-Null
+
+      - name: Build the add-in
+        run: msbuild Genizah/Genizah.csproj -restore -t:Build -p:Configuration=Release -v:minimal
+
+      - name: Package
+        shell: pwsh
+        run: ./tools/dist/package.ps1
+
+      # The local parity tests skip: their full-data files (testdata/local/) aren't distributed.
+      - name: Test
+        run: dotnet test Genizah.Core.Tests -c Release
+
+      # Packs out/version/ (Inno Setup is installed if the image lacks it).
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE) { throw "installing Inno Setup failed" }
+          }
+          & $iscc /Qp "/DVersion=${{ steps.meta.outputs.version }}" tools/dist/setup.iss
+          if ($LASTEXITCODE) { throw "ISCC failed" }
+
+      # What the release uploads: assets/ and the installer (version/ is the installer's input).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: |
+            tools/dist/out/assets/
+            tools/dist/out/Genizah-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 7

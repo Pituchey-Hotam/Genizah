@@ -1,0 +1,70 @@
+# A push to master (a merged release PR) publishes v<VERSION>: a GitHub release, marked latest,
+# holding the version's signed manifests and every file they list, under flat names, and the
+# offline installer. Installed copies update from the latest release. It is uploaded as a draft,
+# checked, and only then published, so an update never sees a half-uploaded release. See
+# docs/RELEASING.md.
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: v${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: Create the release as a draft
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            echo "::error file=VERSION::$TAG is already released: a merge to master must bump VERSION"; exit 1
+          fi
+          # A draft left by an earlier, failed run of this release.
+          if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null)" = "true" ]; then
+            gh release delete "$TAG" --yes
+          fi
+          # Notes cover the PRs since the last add-in release, not since a model-* release.
+          previous=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          gh release create "$TAG" --draft \
+            --target "$GITHUB_SHA" \
+            --title "Genizah ${TAG#v}" \
+            --generate-notes ${previous:+--notes-start-tag "$previous"}
+          gh release upload "$TAG" dist/assets/* dist/Genizah-Setup-*.exe
+
+      # GitHub renames some asset names, and the updater downloads files by name: every file must
+      # be there, under its own name and with its own size.
+      - name: Check the uploaded assets
+        run: |
+          for f in dist/assets/* dist/Genizah-Setup-*.exe; do echo "$(basename "$f") $(stat -c %s "$f")"; done | sort > expected.txt
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) \(.size)"' | sort > uploaded.txt
+          if ! diff expected.txt uploaded.txt; then
+            echo "::error::the draft's assets differ from the build's (above); it stays a draft"; exit 1
+          fi
+
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false --latest

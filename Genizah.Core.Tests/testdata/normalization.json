@@ -1,0 +1,35 @@
+{
+  "about": "Shared test vectors for the text normalization contract. Every implementation (Python, C#, JS) must pass all of them. 'normalize' cases are written by hand from the spec; 'encode' cases pin the ids.",
+  "normalize": [
+    {"case": "vocalized verse: marks stripped, maqaf becomes a space", "input": "ו\u05b7י\u05b0ד\u05b7ב\u05bc\u05b5\u05a5ר א\u05b6ל\u05beמ\u05b9ש\u05c1\u05b6\u0596ה", "output": "וידבר אל משה"},
+    {"case": "sof pasuq becomes a colon", "input": "א\u05b1ל\u05b9ה\u05b4\u0591ים\u05c3", "output": "אלהים:"},
+    {"case": "paseq becomes a space, runs collapse", "input": "א \u05c0 ב", "output": "א ב"},
+    {"case": "mark alone between spaces", "input": "א \u05b0 ב", "output": "א ב"},
+    {"case": "geresh, gershayim and curly quotes", "input": "ה\u05f3 רמב\u201cם ז\u05f4ל \u2018א\u2019 \u201eב\u201f", "output": "ה' רמב\"ם ז\"ל 'א' \"ב\""},
+    {"case": "grave, acute and prime as geresh", "input": "ע`ב ג\u00b4 ד\u2032", "output": "ע'ב ג' ד'"},
+    {"case": "dash variants", "input": "א\u2013ב\u2014ג\u2212ד\u2010ה", "output": "א-ב-ג-ד-ה"},
+    {"case": "censor dash and typed hyphen are kept", "input": "א-להים אל-משה", "output": "א-להים אל-משה"},
+    {"case": "whitespace variants", "input": "א\t\n\u00a0\u2009ב\r\n\u3000ג", "output": "א ב ג"},
+    {"case": "leading and trailing spaces collapse but stay", "input": "  א  ", "output": " א "},
+    {"case": "bidi marks and embeddings deleted", "input": "א\u200fל\u200e \u202bב\u202c\u2067\u2069", "output": "אל ב"},
+    {"case": "deleted invisible between spaces still collapses", "input": "א \u200f ב", "output": "א ב"},
+    {"case": "soft hyphen, zero-width space, BOM, grapheme joiner deleted", "input": "\ufeffאל\u00adה\u200bי\u034fם", "output": "אלהים"},
+    {"case": "presentation forms", "input": "\ufb2aבת \ufb35\ufb4f", "output": "שבת ואל"},
+    {"case": "wide letters", "input": "\ufb21\ufb22\ufb23", "output": "אדה"},
+    {"case": "Yiddish ligatures", "input": "\u05f0\u05f1\u05f2\ufb1f", "output": "וווייייי"},
+    {"case": "digits and Latin letters become class characters", "input": "Genesis 1:1, ע' 23", "output": "aaaaaaa 0:0, ע' 00"},
+    {"case": "outside the alphabet becomes the unknown character", "input": "5% * \u00e9 ר", "output": "0\ufffd \ufffd \ufffd ר"},
+    {"case": "Arabic-Indic digit and fullwidth Latin are unknown", "input": "\u0663\uff21", "output": "\ufffd\ufffd"},
+    {"case": "unknown character is stable", "input": "\ufffd", "output": "\ufffd"},
+    {"case": "brackets and slash", "input": "(א) [ב] ג/ד", "output": "(א) [ב] ג/ד"},
+    {"case": "empty", "input": "", "output": ""}
+  ],
+  "encode": [
+    {"case": "plain window", "left": "ויאמר ", "target": "אלהים", "right": " אל משה", "side": 120, "ids": [10, 14, 5, 19, 29, 4, 2, 5, 17, 9, 14, 18, 3, 4, 5, 17, 4, 19, 30, 9]},
+    {"case": "vocalized target and maqaf in context", "left": "ו\u05b7י\u05b0ד\u05b7ב\u05b5\u05bcר ", "target": "א\u05b1ל\u05b9ה\u05b4ים", "right": "\u05beמ\u05b9ש\u05b6\u05c1ה", "side": 120, "ids": [10, 14, 8, 6, 29, 4, 2, 5, 17, 9, 14, 18, 3, 4, 19, 30, 9]},
+    {"case": "sides cut after normalization", "left": "ברוך אתה ה' ", "target": "אלהינו", "right": " מלך העולם", "side": 4, "ids": [4, 9, 45, 4, 2, 5, 17, 9, 14, 21, 10, 3, 4, 19, 17, 15]},
+    {"case": "no context", "left": "", "target": "שדי", "right": "", "side": 120, "ids": [2, 30, 8, 14, 3]},
+    {"case": "zero side", "left": "abc ", "target": "אל", "right": " 12", "side": 0, "ids": [2, 5, 17, 3]},
+    {"case": "unknown, digit and Latin classes in context", "left": "(ע' 5%) ", "target": "האל", "right": " Deus", "side": 120, "ids": [40, 23, 45, 4, 32, 1, 41, 4, 2, 9, 5, 17, 3, 4, 33, 33, 33, 33]}
+  ]
+}

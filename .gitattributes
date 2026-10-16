@@ -1,0 +1,5 @@
+# One piece per LF-terminated line; the loader splits on LF only.
+model/vocab.txt -text
+
+# Signed by a build: a test checks their signatures, so not one byte may change.
+Genizah.Core.Tests/testdata/manifests/* -text

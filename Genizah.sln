@@ -5,6 +5,10 @@ VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genizah", "Genizah\Genizah.csproj", "{CA329BD6-F4DA-4E21-8E4C-88E31C61FF60}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genizah.Core", "Genizah.Core\Genizah.Core.csproj", "{F9A49AC3-F53E-4731-87EF-7CC76559090D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genizah.Core.Tests", "Genizah.Core.Tests\Genizah.Core.Tests.csproj", "{96F96D0F-BB40-47BB-8192-A9C73B3831B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{CA329BD6-F4DA-4E21-8E4C-88E31C61FF60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA329BD6-F4DA-4E21-8E4C-88E31C61FF60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA329BD6-F4DA-4E21-8E4C-88E31C61FF60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9A49AC3-F53E-4731-87EF-7CC76559090D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9A49AC3-F53E-4731-87EF-7CC76559090D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9A49AC3-F53E-4731-87EF-7CC76559090D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9A49AC3-F53E-4731-87EF-7CC76559090D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96F96D0F-BB40-47BB-8192-A9C73B3831B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96F96D0F-BB40-47BB-8192-A9C73B3831B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96F96D0F-BB40-47BB-8192-A9C73B3831B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96F96D0F-BB40-47BB-8192-A9C73B3831B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

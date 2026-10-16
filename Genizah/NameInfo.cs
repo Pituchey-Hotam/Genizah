@@ -1,47 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Genizah
 {
     /// <summary>
     /// Represents a holy name which requires censoring.
     /// </summary>
-    internal class NameInfo
+    public class NameInfo
     {
-        /// Internal Id representing this name
+        /// Internal Id representing this name, as Genizah.Core's NameFinder reports it
         public string Id { get; }
 
         /// Display name for UI
         public string DisplayName { get; }
 
-        /// Pattern to be used for searching for the name
-        public Regex FindPattern { get; }
+        /// The name's letters, unpointed: the form the replacement options are written for
+        public string BaseForm { get; }
 
         /// Default options for replacing the name
         public string[] ReplacementOptions { get; }
 
-        public NameInfo(string id, string displayName, string findPattern, string[] replacementOptions)
+        public NameInfo(string id, string displayName, string baseForm, string[] replacementOptions)
         {
             Id = id;
             DisplayName = displayName;
-            string regex = @"\b" + string.Join(DIACRITICS_PATTERN, findPattern.ToCharArray()) + @"\b";
-            FindPattern = new Regex(regex, RegexOptions.Compiled);
+            BaseForm = baseForm;
             ReplacementOptions = replacementOptions;
         }
-
-        public string SettingsKey { get { return "name_replacement_" + Id; } }
 
         /// <returns>The preferred replacement set by the user</returns>
         public string getSelectedReplacement()
         {
-            string replacement = (string)Properties.Settings.Default[SettingsKey];
-            if (String.IsNullOrEmpty(replacement)) return ReplacementOptions[0];
-            else return replacement;
+            string replacement;
+            if (AddInSettings.Current.Replacements.TryGetValue(Id, out replacement) && !String.IsNullOrEmpty(replacement))
+                return replacement;
+            return ReplacementOptions[0];
         }
 
         /// <summary>
@@ -49,10 +42,14 @@ namespace Genizah
         /// </summary>
         public void setSelectedReplacement(string replacement)
         {
-            Properties.Settings.Default[SettingsKey] = replacement;
+            AddInSettings.Current.Replacements[Id] = replacement;
         }
 
-        public static string DIACRITICS_PATTERN = "[\u0591-\u05c2]*";
+        /// <returns>The name with this id</returns>
+        public static NameInfo ById(string id)
+        {
+            return names.Single(n => n.Id == id);
+        }
 
         /// <summary>
         /// List of holy names to be handled by the add-in

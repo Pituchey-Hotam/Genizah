@@ -1,0 +1,147 @@
+<UserControl x:Class="Genizah.Results.ResultsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Genizah.Results"
+             FlowDirection="RightToLeft"
+             FontFamily="Segoe UI" FontSize="12"
+             TextOptions.TextFormattingMode="Display"
+             PreviewTextInput="View_PreviewTextInput">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Genizah;component/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <!-- The same colors the names are highlighted with in the document. -->
+            <SolidColorBrush x:Key="PendingMark" Color="#F2C811"/>
+            <SolidColorBrush x:Key="CensoredMark" Color="#3CB043"/>
+            <SolidColorBrush x:Key="LeftMark" Color="#A19F9D"/>
+            <BooleanToVisibilityConverter x:Key="Visible"/>
+
+            <Style x:Key="Row" TargetType="ListBoxItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="border" Background="Transparent" Padding="8,0">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Hover}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Selected}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <DataTemplate DataType="{x:Type local:GroupHeader}">
+                <Grid Height="30" Background="Transparent" MouseLeftButtonUp="Header_MouseLeftButtonUp">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Points forward when collapsed (mirrored in right-to-left), down when expanded. -->
+                    <Path x:Name="chevron" Data="M0,0 L4,4 L0,8" Stroke="{StaticResource SecondaryText}"
+                          StrokeThickness="1.2" VerticalAlignment="Center" HorizontalAlignment="Center"
+                          RenderTransformOrigin="0.5,0.5"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                        <Setter TargetName="chevron" Property="RenderTransform">
+                            <Setter.Value>
+                                <RotateTransform Angle="90"/>
+                            </Setter.Value>
+                        </Setter>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type local:ResultItem}">
+                <Grid Height="26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Ellipse x:Name="mark" Grid.Column="1" Width="8" Height="8" Fill="{StaticResource PendingMark}"
+                             VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="snippet" Grid.Column="2" VerticalAlignment="Center" TextTrimming="WordEllipsis">
+                        <Run Text="{Binding SnippetBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding SnippetAfter, Mode=OneWay}"/>
+                    </TextBlock>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding State}" Value="Censored">
+                        <Setter TargetName="mark" Property="Fill" Value="{StaticResource CensoredMark}"/>
+                        <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding State}" Value="Left">
+                        <Setter TargetName="mark" Property="Fill" Value="{StaticResource LeftMark}"/>
+                        <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource Surface}" TextElement.Foreground="{StaticResource Text}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="summary" Margin="12,10,12,8" TextWrapping="Wrap"/>
+
+        <!-- A scan's progress: its stage, a bar (moving while the stage has no count), and the count. -->
+        <StackPanel x:Name="progressPanel" Margin="12,10,12,8" Visibility="Collapsed">
+            <TextBlock x:Name="progressStage" TextWrapping="Wrap"/>
+            <ProgressBar x:Name="progressBar" Height="4" Margin="0,8,0,6" BorderThickness="0"
+                         Foreground="{StaticResource Accent}" Background="{StaticResource Divider}"/>
+            <TextBlock x:Name="progressCount" Foreground="{StaticResource SecondaryText}"/>
+        </StackPanel>
+
+        <ListBox x:Name="list" Grid.Row="1" BorderThickness="0" Background="Transparent"
+                 ItemContainerStyle="{StaticResource Row}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.IsVirtualizing="True"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 VirtualizingPanel.ScrollUnit="Pixel"
+                 SelectionMode="Single"
+                 IsTextSearchEnabled="False"
+                 SelectionChanged="List_SelectionChanged"
+                 KeyDown="List_KeyDown"/>
+
+        <Border x:Name="details" Grid.Row="2" BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
+                Padding="12,10" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="13" Margin="0,0,0,8">
+                    <Run Text="{Binding ContextBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding ContextAfter, Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding VerdictText}" ToolTip="{Binding ScoreText}" TextWrapping="Wrap"
+                           Foreground="{StaticResource SecondaryText}"/>
+                <TextBlock Text="{Binding ReplacementText}" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="צנזר" Style="{StaticResource PrimaryButton}" Click="Censor_Click"
+                            ToolTip="צנזר (צ)"
+                            Visibility="{Binding CanCensor, Converter={StaticResource Visible}}"/>
+                    <Button Content="השאר" Style="{StaticResource FlatButton}" Click="Leave_Click"
+                            ToolTip="אין זה שם קודש: להשאיר כפי שנכתב (ה)"
+                            Visibility="{Binding CanLeave, Converter={StaticResource Visible}}"/>
+                    <Button Content="בטל צנזור" Style="{StaticResource FlatButton}" Click="Leave_Click"
+                            ToolTip="בטל צנזור (ה)"
+                            Visibility="{Binding CanUndo, Converter={StaticResource Visible}}"/>
+                </StackPanel>
+                <TextBlock Text="מקלדת: ↑↓ מעבר · צ צנזור · ה השארה או ביטול צנזור"
+                           Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

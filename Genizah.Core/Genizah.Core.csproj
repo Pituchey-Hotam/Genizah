@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The add-in's text pipeline: normalization, the divine-name candidate finder, the model's
+       input encoding and its inference. No Office dependency, so it is tested on its own
+       (Genizah.Core.Tests). Built for net48 too, so the add-in gets SignedXml from the
+       framework rather than from a package it would have to ship. -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <RootNamespace>Genizah.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The version the test vectors' logits were scored with (model/manifest.json): the
+         graph's 4-bit embedding table is a contrib op, whose kernel can change between releases. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
+  </ItemGroup>
+
+</Project>

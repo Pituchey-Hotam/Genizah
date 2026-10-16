@@ -1,0 +1,18 @@
+{
+ "about": "The shipping model: its graph, sha256s and input contract. The .onnx file is not in git: it is the GitHub release model-<first 12 hex digits of model_sha256> (tools/dist/fetch_model.ps1).",
+ "model_file": "model.int8-int4emb.onnx",
+ "model_sha256": "590e92a925fab246a46a91ab37f17f30d4a4d690aaeeea7d9e6ec7897fb4a3dc",
+ "tokenizer_sha256": "ee375c25873d723b02d0f60d4d53305091ec8fc0a97825b7f79b9859a228bd58",
+ "data_sha256": "84d2b41ff083e2beed494a9b08949601e37d8261d734072c32ba62c687e25061",
+ "window": "normalize(left)[-32:] + target + normalize(right)[:32]",
+ "max_len": 128,
+ "side": 32,
+ "inputs": {
+  "input_ids": "int64 [batch, seq]",
+  "attention_mask": "float32 [batch, seq]",
+  "target_mask": "float32 [batch, seq]"
+ },
+ "output": "logits float32 [batch], positive means censor",
+ "batching": "one window per run: the int8 layers quantize activations over the whole batch, so batch-mates change a window's logit",
+ "onnxruntime": "1.30.0"
+}
