@@ -43,7 +43,7 @@ namespace Genizah.Core
 
     /// <summary>
     /// The installed versions of the add-in, one folder each: &lt;root&gt;/&lt;MAJOR.MINOR.PATCH&gt;/,
-    /// laid out as the build's bin folder (docs/PLAN-updates.md). A version is built in
+    /// laid out as the build's bin folder (docs/RELEASING.md). A version is built in
     /// &lt;version&gt;.partial/ and only renamed to its final name once every file is there and
     /// matches its signed manifest, so a version folder is always complete.
     /// </summary>

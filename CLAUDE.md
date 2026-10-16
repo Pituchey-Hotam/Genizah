@@ -1,8 +1,7 @@
 # Genizah
 
 What the add-in does, how to build and test it, and the top-level layout are in `README.md`.
-Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deployment:
-`docs/PLAN-updates.md`.
+Releases, installs, updates and CI: `docs/RELEASING.md`.
 
 ## Code map
 
@@ -11,7 +10,7 @@ Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deplo
   VSTO's shadow-copy folder and finds the model files, graph included, through `CodeBase`, not
   `Location`.
   - `Updater`: once per session, builds the latest release's version folder beside the running
-    one and switches Word's registration to it (`Registration`); see `docs/PLAN-updates.md`.
+    one and switches Word's registration to it (`Registration`); see `docs/RELEASING.md`.
   - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
     `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the

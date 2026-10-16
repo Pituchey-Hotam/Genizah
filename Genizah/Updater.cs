@@ -9,7 +9,7 @@ using Genizah.Scanning;
 namespace Genizah
 {
     /// <summary>
-    /// Updates the add-in once per Word session (docs/PLAN-updates.md). A while after startup it
+    /// Updates the add-in once per Word session (docs/RELEASING.md). A while after startup it
     /// reads the latest GitHub release's signed Genizah.vsto; if that version is newer, it builds
     /// the version's folder beside the running one (copying unchanged files, downloading the rest,
     /// checking every one against the signed manifests), trusts it, and points Word's registration

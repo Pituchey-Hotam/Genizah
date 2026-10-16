@@ -8,7 +8,7 @@ namespace Genizah
     /// <summary>
     /// The per-user registry values that make Word load a version folder: the add-in's
     /// registration, and VSTO's inclusion list, which trusts a manifest URL signed by a key.
-    /// tools/dist/setup.iss writes the same values; docs/PLAN-updates.md ("On disk") describes them.
+    /// tools/dist/setup.iss writes the same values; docs/RELEASING.md ("On disk") describes them.
     /// </summary>
     internal static class Registration
     {

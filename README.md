@@ -46,8 +46,10 @@ MSBuild.exe Genizah/Genizah.csproj -restore      # not `dotnet build`: VSTO need
 dotnet test Genizah.Core.Tests                   # net48 and net7.0
 ```
 
-Releases install from https://pituchey-hotam.github.io/Genizah/Genizah.vsto. The model (~100 MB)
-downloads once, in the background, after the first start. See [`docs/RELEASING.md`](docs/RELEASING.md).
+To install a release, run `Genizah-Setup-<version>.exe` from the
+[latest release](https://github.com/Pituchey-Hotam/Genizah/releases/latest). It works offline,
+model included, and the add-in then updates itself in the background. See
+[`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Layout
 
