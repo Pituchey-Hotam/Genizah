@@ -33,7 +33,7 @@ namespace Genizah
         {
             try
             {
-                if (!Properties.Settings.Default.check_for_updates || !IsInstalled) return;
+                if (!AddInSettings.Current.CheckForUpdates || !IsInstalled) return;
                 await Task.Delay(StartupDelay).ConfigureAwait(false);
                 ReleaseInfo latest = await ReadLatest().ConfigureAwait(false);
                 if (!IsNewer(latest.Version))

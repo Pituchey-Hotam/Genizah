@@ -226,6 +226,7 @@
       <DependentUpon>ResultsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Results\SearchResult.cs" />
+    <Compile Include="AddInSettings.cs" />
     <Compile Include="NameInfo.cs" />
     <Compile Include="Scanning\BenchmarkHook.cs" />
     <Compile Include="Scanning\DocumentScanner.cs" />
@@ -262,19 +263,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <None Include="app.config" />
     <None Include="Resources\CensorNames.png" />
     <Resource Include="Resources\Settings.ico" />
     <None Include="Genizah_TemporaryKey.pfx" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>

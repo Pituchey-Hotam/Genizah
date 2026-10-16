@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -18,7 +19,7 @@ namespace Genizah
         {
             InitializeComponent();
             rows.ItemsSource = names;
-            checkForUpdates.IsChecked = Properties.Settings.Default.check_for_updates;
+            checkForUpdates.IsChecked = AddInSettings.Current.CheckForUpdates;
             checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
         }
 
@@ -56,8 +57,18 @@ namespace Genizah
         {
             foreach (Row row in names)
                 row.Name.setSelectedReplacement(row.Replacement.Trim());
-            Properties.Settings.Default.check_for_updates = checkForUpdates.IsChecked == true;
-            Properties.Settings.Default.Save();
+            AddInSettings.Current.CheckForUpdates = checkForUpdates.IsChecked == true;
+            try
+            {
+                AddInSettings.Save();
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // The choices still apply until Word closes.
+                MessageBox.Show(this, "לא ניתן לשמור את ההגדרות: " + ex.Message, Title,
+                                MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK,
+                                MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign);
+            }
             DialogResult = true;
         }
 

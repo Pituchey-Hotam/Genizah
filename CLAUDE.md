@@ -25,6 +25,8 @@ Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deplo
     is flat and virtualized; shortcuts match the typed character, so they follow the layout.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
     and replacements).
+  - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
+    (`Genizah.Core/UserSettings`), shared by every version and Word build.
 - `Genizah.Core/` (netstandard2.0): a port of the Python input pipeline the model was trained
   with, which isn't in this repo; the test vectors stand in for it. `TextNormalizer` →
   `NameFinder` → `WordPieceTokenizer`/`WindowEncoder` → `NameClassifier`. Outside the pipeline:

@@ -28,14 +28,13 @@ namespace Genizah
             ReplacementOptions = replacementOptions;
         }
 
-        public string SettingsKey { get { return "name_replacement_" + Id; } }
-
         /// <returns>The preferred replacement set by the user</returns>
         public string getSelectedReplacement()
         {
-            string replacement = (string)Properties.Settings.Default[SettingsKey];
-            if (String.IsNullOrEmpty(replacement)) return ReplacementOptions[0];
-            else return replacement;
+            string replacement;
+            if (AddInSettings.Current.Replacements.TryGetValue(Id, out replacement) && !String.IsNullOrEmpty(replacement))
+                return replacement;
+            return ReplacementOptions[0];
         }
 
         /// <summary>
@@ -43,7 +42,7 @@ namespace Genizah
         /// </summary>
         public void setSelectedReplacement(string replacement)
         {
-            Properties.Settings.Default[SettingsKey] = replacement;
+            AddInSettings.Current.Replacements[Id] = replacement;
         }
 
         /// <returns>The name with this id</returns>
