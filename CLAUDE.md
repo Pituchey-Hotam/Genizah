@@ -1,7 +1,8 @@
 # Genizah
 
 What the add-in does, how to build and test it, and the top-level layout are in `README.md`.
-Releases and CI: `docs/RELEASING.md`.
+Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deployment:
+`docs/PLAN-updates.md`.
 
 ## Code map
 
