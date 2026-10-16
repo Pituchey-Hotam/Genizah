@@ -62,10 +62,24 @@ jobs:
       - name: Test
         run: dotnet test Genizah.Core.Tests -c Release
 
-      # Only what the release uploads; version/ is the same files, for the installer.
+      # Packs out/version/ (Inno Setup is installed if the image lacks it).
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE) { throw "installing Inno Setup failed" }
+          }
+          & $iscc /Qp "/DVersion=${{ steps.meta.outputs.version }}" tools/dist/setup.iss
+          if ($LASTEXITCODE) { throw "ISCC failed" }
+
+      # What the release uploads: assets/ and the installer (version/ is the installer's input).
       - uses: actions/upload-artifact@v7
         with:
           name: dist
-          path: tools/dist/out/assets/
+          path: |
+            tools/dist/out/assets/
+            tools/dist/out/Genizah-Setup-*.exe
           if-no-files-found: error
           retention-days: 7

@@ -1,7 +1,8 @@
 # A push to master (a merged release PR) publishes v<VERSION>: a GitHub release, marked latest,
-# holding the version's signed manifests and every file they list, under flat names. Installed
-# copies update from the latest release. It is uploaded as a draft, checked, and only then
-# published, so an update never sees a half-uploaded release. See docs/RELEASING.md.
+# holding the version's signed manifests and every file they list, under flat names, and the
+# offline installer. Installed copies update from the latest release. It is uploaded as a draft,
+# checked, and only then published, so an update never sees a half-uploaded release. See
+# docs/RELEASING.md.
 name: Release
 
 on:
@@ -53,16 +54,16 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Genizah ${TAG#v}" \
             --generate-notes ${previous:+--notes-start-tag "$previous"}
-          gh release upload "$TAG" dist/*
+          gh release upload "$TAG" dist/assets/* dist/Genizah-Setup-*.exe
 
       # GitHub renames some asset names, and the updater downloads files by name: every file must
       # be there, under its own name and with its own size.
       - name: Check the uploaded assets
         run: |
-          (cd dist && for f in *; do echo "$f $(stat -c %s "$f")"; done) | sort > expected.txt
+          for f in dist/assets/* dist/Genizah-Setup-*.exe; do echo "$(basename "$f") $(stat -c %s "$f")"; done | sort > expected.txt
           gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) \(.size)"' | sort > uploaded.txt
           if ! diff expected.txt uploaded.txt; then
-            echo "::error::the draft's assets differ from dist/ (above); it stays a draft"; exit 1
+            echo "::error::the draft's assets differ from the build's (above); it stays a draft"; exit 1
           fi
 
       - name: Publish the release
