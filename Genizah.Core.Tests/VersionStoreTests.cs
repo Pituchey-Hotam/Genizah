@@ -62,7 +62,8 @@ namespace Genizah.Core.Tests
         public async Task ANewGraphIsDownloaded()
         {
             string running = await Install("1.0.0", Version("code 1.0"));
-            byte[] newGraph = Graph.Reverse().ToArray();
+            // Enumerable.Reverse, not the array's: newer C# binds .Reverse() to the in-place Span method.
+            byte[] newGraph = Enumerable.Reverse(Graph).ToArray();
             Publish("1.1.0", Version("code 1.1", newGraph), latest: true);
 
             BuiltVersion built = await store.BuildAsync(await store.LatestAsync(), running);
