@@ -160,9 +160,16 @@ bothers the user about a failure.
    Anything that fails before it leaves the installed version as it was.
 7. Say so on Word's status bar and above the next scan's results, as now.
 
-**Cleanup** runs at every start. It deletes the version folders other than the running one and the
-one the registry names, along with any `.partial` folders, and removes the inclusion entries that
-point into deleted folders. A lock file keeps two Word processes from updating at once.
+**Cleanup** runs with every check. It keeps three folders:
+- the running version;
+- the version the registry names;
+- the latest release's `.partial` folder, so an interrupted download resumes in a later session.
+
+It deletes every other folder, and removes the inclusion entries that point into deleted folders. A
+lock file (`versions\update.lock`) keeps two Word processes from updating at once.
+
+In `Genizah.Core`, `VersionStore` does steps 1–4, the cleanup and the lock; `Download` does the
+resumable, verified downloads. The add-in does the registry, the timing and the notice.
 
 **A broken update.** If a new version fails to load, Word disables the add-in, and the updater isn't
 running to fix it. For now, the previous version's folder stays until the new version has started
