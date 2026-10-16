@@ -1,61 +1,73 @@
 # Releasing
 
-A release is a PR into `master`. When it merges, `.github/workflows/release.yml` builds and tests
-the add-in and publishes the GitHub release `v<VERSION>`, marked latest.
+## How installs and updates work
+
+The add-in is a ClickOnce deployment on GitHub Pages:
+
+    https://pituchey-hotam.github.io/Genizah/Genizah.vsto
+
+The model graph (~100 MB) is not part of it. Each graph is its own GitHub release, tagged
+`model-<first 12 hex of its sha256>`, and `model/manifest.json` names the graph a given version
+of the add-in needs.
+
+- **Installing.** Open the `.vsto` URL and accept the trust prompt. Accepting it adds the URL to
+  VSTO's inclusion list, which is what lets later updates install silently.
+- **Updating.** VSTO's own update check is off, so Word never waits on a download at startup.
+  Instead the add-in checks Pages itself. When a newer version is out, it first downloads that
+  version's model in the background and checks its sha256, and only then runs
+  `VSTOInstaller.exe /i <url> /s`. The new code and its model take effect together at the next
+  Word start. If anything fails halfway, the installed version and its model stay as they are.
+- **Code and model always match.** The add-in only ever uses the graph its own manifest names.
+  If it starts without that graph (a plain install, or Pages moved on to a newer version during an
+  update), it downloads the graph and can only scan once it's there.
+
+The `.vsto` URL is permanent: every install trusts and updates from exactly that address. Renaming
+the repo, moving it to another owner, or changing the publishing certificate cuts existing installs
+off from updates.
 
 ## Cutting a release
 
-1. On `develop` (or a branch off it), bump `VERSION` (MAJOR.MINOR.PATCH). It is the only place
-   the version lives: `Genizah.csproj` stamps it into `Genizah.dll` (`<VERSION>.0`) and into the
-   `.vsto` and `.dll.manifest` identities.
+A release is a PR into `master`.
+
+1. Bump `VERSION` (MAJOR.MINOR.PATCH). It is the only place the version lives; the build stamps it
+   into `Genizah.dll` and the ClickOnce manifests.
 2. If the model graph changed, publish it first (below), or CI can't fetch it.
-3. Open a PR from `develop` into `master`. `ci.yml` builds, runs the tests, and checks that
-   `VERSION` is new and greater than every `v*` tag.
-4. Merge. The release gets notes generated from the PRs since the previous `v*` tag.
+3. Open the PR. CI builds, runs the tests, and checks that `VERSION` is greater than every release.
+4. Merge. CI publishes the ClickOnce deployment to Pages and creates the GitHub release
+   `v<VERSION>` with notes from the merged PRs.
 
-A push to `master` whose `VERSION` is already released fails the release job instead of
-overwriting anything.
+Pushing to `master` without bumping `VERSION` fails instead of overwriting a release.
 
-## What a release carries
+## What gets published
 
-- `Genizah-<VERSION>.zip`: `bin\Release` without symbols, import libraries or the model graph.
-  Its `model/` has `vocab.txt`, `thresholds.json` and `manifest.json`.
-- `model-manifest.json`: a copy of `model/manifest.json`, so an update check can see which graph
-  a release needs without downloading the zip.
+- **Pages:** `Genizah.vsto`, `Application Files/Genizah_<version>/`, and `release.json`
+  (the version and the model it needs). Only the latest version is kept there.
+- **GitHub release `v<VERSION>`:** the notes, plus `release.json`.
+- **GitHub release `model-<sha12>`:** the graph, published once per graph and shared by every
+  add-in version that uses it.
 
-The graph is not in the release. It's the GitHub release `model-<first 12 hex of its sha256>`,
-which `manifest.json`'s `model_sha256` names. Add-in releases that share a graph share that one
-download. Release builds pass `-p:IncludeModelGraph=false`. The signed `.dll.manifest` lists
-every file VSTO must find, so the graph has to be left out of the build, not just the zip.
-`tools/dist/package.ps1` refuses a build that lists it.
+## Publishing a new model graph
 
-## A new model graph
+Once `model/manifest.json` and the test vectors are regenerated for the new graph, with its
+`.onnx` in `model/`:
 
-Once `model/manifest.json` and the test vectors are regenerated for the new graph, with its `.onnx`
-in `model/`:
+    powershell -File tools/dist/publish_model.ps1
 
-```
-powershell -File tools/dist/publish_model.ps1
-```
+This checks the file against the manifest and creates the `model-<sha12>` release (never marked
+"latest"). It needs `gh`, logged in with write access. `tools/dist/fetch_model.ps1` downloads and
+verifies the manifest's graph; CI uses it, and so can a fresh clone.
 
-It checks the local `.onnx` against the manifest, then creates the `model-<sha12>` release with
-`--latest=false`, so GitHub's "latest release" stays an add-in release. It needs `gh`, logged in
-with write access. Without `gh`, create the release by hand on GitHub with the same tag. Attach
-the `.onnx` under its manifest file name and untick "Set as the latest release".
+## One-time setup
 
-`tools/dist/fetch_model.ps1` downloads the manifest's graph into `model/` and verifies its
-sha256. CI uses it, and it works on a fresh clone too.
+In the repo's settings, under Pages, set the source to **GitHub Actions**.
 
 ## Signing
 
-The manifests are signed with `Genizah/Genizah_TemporaryKey.pfx`, a self-signed Visual Studio key
-that expired in June 2024. MSBuild still signs with it, but Office trusts the add-in only after
-a prompt. Changing the certificate later changes the publisher identity that installed copies
-trust.
+The manifests are signed with `Genizah/Genizah_TemporaryKey.pfx`, a self-signed key. Installs show
+an "unknown publisher" prompt once. Since installs trust this key, replacing it later means
+existing installs stop updating unless they first add the new key to their inclusion list.
 
 ## Not built yet
 
-- Installing from a release. The zip has no graph, so double-clicking its `.vsto` installs an
-  add-in that can't find its model.
-- An update check: read the latest release, compare `VERSION`, and compare `model-manifest.json`'s
-  `model_sha256` with the installed graph's.
+- The add-in's update check, model download and silent install.
+- A setup `.exe` that includes the model, so a fresh install works without a download.

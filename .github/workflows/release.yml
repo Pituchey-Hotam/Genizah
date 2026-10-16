@@ -1,6 +1,7 @@
-# A push to master (a merged release PR) becomes the GitHub release v<VERSION>, marked latest,
-# with the add-in zip and model-manifest.json. The model graph is not attached: it is its own
-# release, model-<sha256[:12]>, which model-manifest.json names.
+# A push to master (a merged release PR) publishes v<VERSION>: the ClickOnce deployment goes to
+# GitHub Pages, where installs and updates fetch it, and the GitHub release v<VERSION>, marked
+# latest, gets the notes and release.json. The model graph is in neither: it is its own release,
+# model-<sha256[:12]>, which release.json names. See docs/RELEASING.md.
 name: Release
 
 on:
@@ -34,6 +35,7 @@ jobs:
           name: dist
           path: dist
 
+      # Before Pages: a VERSION that is already released stops here, so it never reaches installs.
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -45,8 +47,25 @@ jobs:
           fi
           # Notes cover the PRs since the last add-in release, not since a model-* release.
           previous=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
-          gh release create "$tag" dist/* \
+          gh release create "$tag" dist/release.json \
             --target "$GITHUB_SHA" \
             --title "Genizah $VERSION" \
             --generate-notes ${previous:+--notes-start-tag "$previous"} \
             --latest
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/site
+
+  pages:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}Genizah.vsto
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

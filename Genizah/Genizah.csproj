@@ -29,8 +29,16 @@
     <LoadBehavior>3</LoadBehavior>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <BootstrapperEnabled>false</BootstrapperEnabled>
     <BootstrapperComponentsLocation>HomeSite</BootstrapperComponentsLocation>
+    <!-- The ClickOnce deployment (docs/RELEASING.md). The URL is permanent: installs trust it and
+         update from it. VSTO's own update check is off; the add-in installs updates itself, once
+         their model is downloaded, so Word never waits on a download at startup. -->
+    <InstallUrl>https://pituchey-hotam.github.io/Genizah/</InstallUrl>
+    <!-- Required by the Office publish targets, but MSBuild writes the deployment to
+         bin\Release\app.publish regardless (tools/dist/package.ps1 reads it from there). -->
+    <PublishUrl>publish\</PublishUrl>
+    <UpdateEnabled>false</UpdateEnabled>
     <!-- ONNX Runtime's build props copy its native DLL by PlatformTarget; without it, Windows' own,
          older onnxruntime.dll in System32 gets loaded and crashes (see ../CLAUDE.md). x64 is what
          Word runs as. -->

@@ -45,8 +45,9 @@ MSBuild.exe Genizah/Genizah.csproj -restore      # not `dotnet build`: VSTO need
 dotnet test Genizah.Core.Tests                   # net48 and net7.0
 ```
 
-There's no installer yet: a release zip doesn't include the model graph. Run the add-in from
-Visual Studio.
+Releases install from https://pituchey-hotam.github.io/Genizah/Genizah.vsto, but the add-in
+can't download its model yet, so for now run it from Visual Studio. See
+[`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Layout
 

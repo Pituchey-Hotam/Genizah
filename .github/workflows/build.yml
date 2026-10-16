@@ -1,5 +1,6 @@
-# Builds the add-in, runs Genizah.Core.Tests against the shipping model, and uploads the release
-# package (tools/dist/package.ps1) as the "dist" artifact. Called by ci.yml and release.yml.
+# Publishes the add-in with ClickOnce, runs Genizah.Core.Tests against the shipping model, and
+# uploads the release package (tools/dist/package.ps1: the Pages site and release.json) as the
+# "dist" artifact. Called by ci.yml and release.yml.
 name: Build and test
 
 on:
@@ -38,10 +39,10 @@ jobs:
           "version=$v" >> $env:GITHUB_OUTPUT
           "model_sha256=$sha" >> $env:GITHUB_OUTPUT
 
-      # Built before the graph is fetched, and told to leave it out: the graph ships as its own
-      # release, and the signed .dll.manifest must not list it.
-      - name: Build the add-in
-        run: msbuild Genizah/Genizah.csproj -restore -p:Configuration=Release -p:IncludeModelGraph=false -v:minimal
+      # Published before the graph is fetched, and told to leave it out: the graph ships as its
+      # own release, and the signed .dll.manifest must not list it.
+      - name: Publish the add-in
+        run: msbuild Genizah/Genizah.csproj -restore -t:Publish -p:Configuration=Release -p:IncludeModelGraph=false -v:minimal
 
       - name: Package
         shell: pwsh
