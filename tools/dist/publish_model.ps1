@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-Uploads model/'s .onnx file as its own GitHub release, which CI and the add-in fetch it from.
+Uploads model/'s .onnx file as its own GitHub release, which CI fetches it from to build.
 
 .DESCRIPTION
 Run once per new graph, after its sha256 is written into
 model/manifest.json, and before pushing that manifest (CI fetches the graph it names).
 
-The release is tagged model-<first 12 hex digits of the sha256>, so a graph's tag never changes
-and add-in releases that share a graph share its download. It is never marked "latest": GitHub's
-latest release is always an add-in release (v<VERSION>), which is what an update check reads.
+The release is tagged model-<first 12 hex digits of the sha256>, so a graph's tag never changes.
+It is never marked "latest": GitHub's latest release is always an add-in release (v<VERSION>),
+which is what installed copies update from.
 Needs the GitHub CLI (gh), logged in with write access to the repo.
 
 .EXAMPLE
@@ -36,8 +36,8 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 $notes = @"
-The classifier graph, not an add-in release. Add-in releases name the graph they use in
-model/manifest.json, and fetch it from here.
+The classifier graph, not an add-in release. The add-in's builds name the graph they use in
+model/manifest.json, and fetch it from here; each add-in release ships its own copy.
 
 - file: $file
 - sha256: $sha

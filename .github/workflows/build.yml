@@ -1,6 +1,6 @@
-# Publishes the add-in with ClickOnce, runs Genizah.Core.Tests against the shipping model, and
-# uploads the release package (tools/dist/package.ps1: the Pages site and release.json) as the
-# "dist" artifact. Called by ci.yml and release.yml.
+# Builds the add-in with its model graph, runs Genizah.Core.Tests against it, and uploads the
+# release's assets (tools/dist/package.ps1) as the "dist" artifact. Called by ci.yml and
+# release.yml.
 name: Build and test
 
 on:
@@ -39,33 +39,33 @@ jobs:
           "version=$v" >> $env:GITHUB_OUTPUT
           "model_sha256=$sha" >> $env:GITHUB_OUTPUT
 
-      # Published before the graph is fetched, and told to leave it out: the graph ships as its
-      # own release, and the signed .dll.manifest must not list it.
-      - name: Publish the add-in
-        run: msbuild Genizah/Genizah.csproj -restore -t:Publish -p:Configuration=Release -p:IncludeModelGraph=false -v:minimal
-
-      - name: Package
-        shell: pwsh
-        run: ./tools/dist/package.ps1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: tools/dist/out/
-          if-no-files-found: error
-
       - name: Cache the model graph
         uses: actions/cache@v6
         with:
           path: model/*.onnx
           key: model-${{ steps.meta.outputs.model_sha256 }}
 
-      # Fails if the graph manifest.json names has no model-<sha> release (tools/dist/publish_model.ps1),
-      # so the classifier tests never skip here.
+      # Before the build, which ships the graph. Fails if the graph manifest.json names has no
+      # model-<sha> release (tools/dist/publish_model.ps1), so the classifier tests never skip here.
       - name: Fetch the model graph
         shell: pwsh
         run: ./tools/dist/fetch_model.ps1
 
+      - name: Build the add-in
+        run: msbuild Genizah/Genizah.csproj -restore -t:Build -p:Configuration=Release -v:minimal
+
+      - name: Package
+        shell: pwsh
+        run: ./tools/dist/package.ps1
+
       # The local parity tests skip: their full-data files (testdata/local/) aren't distributed.
       - name: Test
         run: dotnet test Genizah.Core.Tests -c Release
+
+      # Only what the release uploads; version/ is the same files, for the installer.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: tools/dist/out/assets/
+          if-no-files-found: error
+          retention-days: 7

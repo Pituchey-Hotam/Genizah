@@ -29,15 +29,8 @@
     <LoadBehavior>3</LoadBehavior>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
-    <BootstrapperEnabled>false</BootstrapperEnabled>
-    <BootstrapperComponentsLocation>HomeSite</BootstrapperComponentsLocation>
-    <!-- The ClickOnce deployment (docs/RELEASING.md). The URL is permanent: installs trust it and
-         update from it. VSTO's own update check is off; the add-in installs updates itself, once
-         their model is downloaded, so Word never waits on a download at startup. -->
-    <InstallUrl>https://pituchey-hotam.github.io/Genizah/</InstallUrl>
-    <!-- Required by the Office publish targets, but MSBuild writes the deployment to
-         bin\Release\app.publish regardless (tools/dist/package.ps1 reads it from there). -->
-    <PublishUrl>publish\</PublishUrl>
+    <!-- Releases are the build's bin\Release folder, not a ClickOnce publish (docs/RELEASING.md).
+         The add-in updates itself (Updater), so VSTO's own update check is off. -->
     <UpdateEnabled>false</UpdateEnabled>
     <!-- ONNX Runtime's build props copy its native DLL by PlatformTarget; without it, Windows' own,
          older onnxruntime.dll in System32 gets loaded and crashes (see ../CLAUDE.md). x64 is what
@@ -66,7 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- The shipping model and its per-name thresholds. The .onnx file is git-ignored: copy it into ../model/ first. -->
-    <!-- manifest.json names the graph's sha256, which is how a release finds its model. -->
+    <!-- manifest.json names the graph and its sha256, which is how CI fetches it. -->
     <Content Include="..\model\vocab.txt;..\model\thresholds.json;..\model\manifest.json">
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -76,13 +69,6 @@
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.VSTORuntime.4.0">
-      <Visible>False</Visible>
-      <ProductName>Microsoft Visual Studio 2010 Tools for Office Runtime %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
   </ItemGroup>
   <PropertyGroup>
     <!--
