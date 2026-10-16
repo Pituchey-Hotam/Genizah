@@ -81,5 +81,5 @@ sha256>`. With the new `.onnx` in `model/` and `model/manifest.json` updated:
 
     powershell -File tools/dist/publish_model.ps1
 
-That release is never marked latest. `tools/dist/fetch_model.ps1` fetches the graph, for CI or a
-fresh clone.
+It's a pre-release, so it never becomes the latest release. `tools/dist/fetch_model.ps1` fetches
+the graph, for CI or a fresh clone.

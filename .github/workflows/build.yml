@@ -16,7 +16,8 @@ permissions:
 jobs:
   build:
     # The image with VS 2022 Enterprise and its Office/SharePoint workload, which VSTO builds need.
-    runs-on: windows-2025
+    # (windows-2025 has VS 18, whose Office build tasks fail to load their Hosting assembly.)
+    runs-on: windows-2022
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
@@ -50,6 +51,12 @@ jobs:
       - name: Fetch the model graph
         shell: pwsh
         run: ./tools/dist/fetch_model.ps1
+
+      # The build signs the manifests by the csproj's ManifestCertificateThumbprint, which it looks
+      # up in the user's certificate store.
+      - name: Import the signing certificate
+        shell: pwsh
+        run: Import-PfxCertificate -FilePath Genizah/Genizah_TemporaryKey.pfx -CertStoreLocation Cert:\CurrentUser\My | Out-Null
 
       - name: Build the add-in
         run: msbuild Genizah/Genizah.csproj -restore -t:Build -p:Configuration=Release -v:minimal
