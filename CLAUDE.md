@@ -8,10 +8,10 @@ Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deplo
 
 - `Genizah/` (VSTO, net48, x64). The version is the root `VERSION`, stamped in at build time.
   We ship our own `onnxruntime.dll` beside `Genizah.dll`; `Scanning/ModelLoader` copies it into
-  VSTO's shadow-copy folder and finds the model files through `CodeBase`, not `Location`. The
-  graph is beside them only in a development build; an installed copy gets it from the model
-  store (`Genizah.Core/ModelStore`), downloading it if needed.
-  - `Updater`: installs updates itself, the new version's graph first (`docs/RELEASING.md`).
+  VSTO's shadow-copy folder and finds the model files, graph included, through `CodeBase`, not
+  `Location`.
+  - `Updater`: once per session, builds the latest release's version folder beside the running
+    one and switches Word's registration to it (`Registration`); see `docs/PLAN-updates.md`.
   - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
     `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
@@ -27,13 +27,14 @@ Releases and CI: `docs/RELEASING.md`. Planned replacement of its ClickOnce deplo
     and replacements).
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
     (`Genizah.Core/UserSettings`), shared by every version and Word build.
-- `Genizah.Core/` (netstandard2.0, and net48 so the add-in gets `SignedXml` from the framework): a port of the Python input pipeline the model was trained
-  with, which isn't in this repo; the test vectors stand in for it. `TextNormalizer` →
-  `NameFinder` → `WordPieceTokenizer`/`WindowEncoder` → `NameClassifier`. Outside the pipeline:
+- `Genizah.Core/` (netstandard2.0, and net48 so the add-in gets `SignedXml` from the framework):
+  a port of the Python input pipeline the model was trained with, which isn't in this repo; the
+  test vectors stand in for it. `TextNormalizer` → `NameFinder` → `WordPieceTokenizer`/
+  `WindowEncoder` → `NameClassifier`. Outside the pipeline:
   `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `Quote`,
-  `NameThresholds`, `ModelStore` (with `ReleaseInfo`, which reads `model/manifest.json` and the
-  update site's `release.json`), `Manifests` (reads a version's signed `.vsto` and `.dll.manifest`
-  after checking the signer's key; ClickOnce's algorithm names need registering with `CryptoConfig`).
+  `NameThresholds`, `ModelManifest`. For updates: `Manifests` (reads a version's signed `.vsto`
+  and `.dll.manifest` after checking the signer's key; ClickOnce's algorithm names need
+  registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`.
 - `Genizah.Core.Tests/`: `testdata/` vectors are from the Hebrew Bible or hand-written.
   `LocalParityTests` need undistributed data and skip.
 - `model/`: `vocab.txt`, `manifest.json`, `thresholds.json` and the fetched `.onnx` belong

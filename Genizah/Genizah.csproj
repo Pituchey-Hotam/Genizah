@@ -71,10 +71,8 @@
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <!-- Releases build with IncludeModelGraph=false: the graph is its own GitHub release
-         (tools/dist/), and a file the signed .dll.manifest lists can't be left out of the
-         package. -->
-    <Content Include="..\model\*.onnx" Condition="'$(IncludeModelGraph)' != 'false'">
+    <!-- The graph is too large for git: tools/dist/fetch_model.ps1 puts it in model/. -->
+    <Content Include="..\model\*.onnx">
       <Link>model\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -228,6 +226,7 @@
     <Compile Include="Results\SearchResult.cs" />
     <Compile Include="AddInSettings.cs" />
     <Compile Include="NameInfo.cs" />
+    <Compile Include="Registration.cs" />
     <Compile Include="Scanning\BenchmarkHook.cs" />
     <Compile Include="Scanning\DocumentScanner.cs" />
     <Compile Include="Scanning\InputLock.cs" />

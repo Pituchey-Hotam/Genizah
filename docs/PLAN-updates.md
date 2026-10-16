@@ -230,7 +230,9 @@ Each step is testable on its own. Nothing ships until step 7 passes.
 7. **End to end,** as with the ClickOnce tests: a scratch build pointed at a local server. Cover an
    offline install with no network, a code-only update (check that it doesn't download the graph), an
    update with a new graph, a tampered asset (refused, nothing switched), an impostor-signed release
-   (refused), and uninstalling.
+   (refused), and uninstalling. Also check a profile path with a space and Hebrew letters in it.
+   The inclusion entry's URL is percent-encoded (`Uri.AbsoluteUri`), and it's untested whether
+   VSTO matches that against the `Manifest` value the same way.
 8. **Docs.** Rewrite `RELEASING.md` around this, update `CLAUDE.md` and `README.md`, delete this plan.
 
 ## Open questions

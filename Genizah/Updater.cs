@@ -9,17 +9,24 @@ using Genizah.Scanning;
 namespace Genizah
 {
     /// <summary>
-    /// Updates the add-in once per Word session (docs/RELEASING.md). VSTO's own update check is off,
-    /// so Word never waits on a download at startup. Instead, a while after startup, this reads
-    /// release.json from the update site; if a newer version is out, it downloads that version's
-    /// model graph into the store first, and only then installs the version with VSTOInstaller.
-    /// The new code and its graph take effect together at the next Word start. Any failure leaves
-    /// the installed version as it is, until the next session tries again.
+    /// Updates the add-in once per Word session (docs/PLAN-updates.md). A while after startup it
+    /// reads the latest GitHub release's signed Genizah.vsto; if that version is newer, it builds
+    /// the version's folder beside the running one (copying unchanged files, downloading the rest,
+    /// checking every one against the signed manifests), trusts it, and points Word's registration
+    /// at it. The new version, code and model, runs from the next Word start. Any failure leaves
+    /// the registered version as it is, until the next session tries again.
     /// </summary>
     internal static class Updater
     {
-        /// <summary>The ClickOnce deployment: Genizah.csproj's InstallUrl.</summary>
-        public const string Site = "https://pituchey-hotam.github.io/Genizah/";
+        /// <summary>The repository's releases. Each holds a version's signed manifests and files.</summary>
+        public const string Releases = "https://github.com/Pituchey-Hotam/Genizah/releases/";
+
+        /// <summary>The public half of the key that signs the manifests (Genizah.csproj's ManifestKeyFile).</summary>
+        public const string PublicKey = "<RSAKeyValue><Modulus>pP2JOUHp4wFx4GRaTvaJa2OyuE8NpPVIkEkuPKyPmRM1MfpOY0uoN0Tbp0zFjX1Qftw3mQyGWlRyHIEbpsPfpwiC/2s6Erkh5Tt+4ot1SGl0bvaxeOJfBNnPGZRccVZZUlfmqyCmXArOymVhMDJJqnfCM4Wtk8P/FSrdlonHr3U=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
+
+        /// <summary>Where the installed versions are: one folder each.</summary>
+        public static readonly string VersionsDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Genizah", "versions");
 
         /// <summary>Lets Word, the model load and the user's first steps go first.</summary>
         private static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(30);
@@ -29,27 +36,22 @@ namespace Genizah
         /// an installed copy. Never throws: an update is never worth bothering the user about.
         /// </summary>
         /// <param name="installed">Called, off the UI thread, with the version installed for the next start.</param>
-        public static async Task CheckAsync(Action<string> installed)
+        public static async Task CheckAsync(Action<Version> installed)
         {
             try
             {
                 if (!AddInSettings.Current.CheckForUpdates || !IsInstalled) return;
                 await Task.Delay(StartupDelay).ConfigureAwait(false);
-                ReleaseInfo latest = await ReadLatest().ConfigureAwait(false);
-                if (!IsNewer(latest.Version))
+                // Redirects are left to Download, so a resumed download's range reaches the final server.
+                using (var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(60) })
                 {
-                    Prune();
-                    return;
+                    var store = new VersionStore(VersionsDir, http, new Uri(Releases), PublicKey);
+                    using (IDisposable held = store.TryLock())
+                    {
+                        if (held == null) return;
+                        await Update(store, installed).ConfigureAwait(false);
+                    }
                 }
-                await ModelLoader.Download(latest).ConfigureAwait(false);
-                int exit = await Install().ConfigureAwait(false);
-                if (exit != 0)
-                {
-                    Debug.WriteLine($"Genizah update: VSTOInstaller exited {exit}");
-                    return;
-                }
-                installed(latest.Version);
-                Prune(latest.ModelSha256);
             }
             catch (Exception ex)
             {
@@ -57,68 +59,57 @@ namespace Genizah
             }
         }
 
-        /// <summary>
-        /// Deletes the store's graphs but the running version's and <paramref name="next"/>. Only
-        /// once an update is settled, and after it: a broken model/manifest.json mustn't stop the
-        /// update that would replace it.
-        /// </summary>
-        private static void Prune(string next = null)
+        private static async Task Update(VersionStore store, Action<Version> installed)
         {
-            string current = ModelLoader.Manifest.ModelSha256;
-            ModelLoader.Store.Prune(next == null ? new[] { current } : new[] { current, next });
-        }
+            string running = ModelLoader.AddInDir;
+            string registered = Registration.RegisteredDir();
+            Release latest = await store.LatestAsync().ConfigureAwait(false);
 
-        /// <summary>
-        /// True if the add-in runs from the ClickOnce store, as an installed copy does. A
-        /// development build runs from its bin folder, and updating that would replace it.
-        /// </summary>
-        private static bool IsInstalled =>
-            ModelLoader.AddInDir.StartsWith(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Apps", "2.0") + "\\",
-                StringComparison.OrdinalIgnoreCase);
-
-        private static bool IsNewer(string version)
-        {
-            Version running = typeof(Updater).Assembly.GetName().Version;
-            return Version.TryParse(version, out Version offered)
-                && offered > new Version(running.Major, running.Minor, running.Build);
-        }
-
-        private static async Task<ReleaseInfo> ReadLatest()
-        {
-            using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) })
-            // No-cache: Pages' CDN may otherwise serve the release.json from before the last release.
-            using (var request = new HttpRequestMessage(HttpMethod.Get, Site + "release.json"))
+            // Only ever forward: past the running version, and past one already installed for the next start.
+            Version current = RunningVersion;
+            if (registered != null && IsVersionDir(registered, out Version next) && next > current)
+                current = next;
+            if (latest.Version <= current)
             {
-                request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
-                using (HttpResponseMessage response = await http.SendAsync(request).ConfigureAwait(false))
-                {
-                    response.EnsureSuccessStatusCode();
-                    using (Stream body = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        return ReleaseInfo.Read(body);
-                }
+                // The previous version's folder goes once the next one has started.
+                Clean(store, running, registered, VersionStore.PartialName(latest.Version));
+                return;
+            }
+
+            BuiltVersion built = await store.BuildAsync(latest, running).ConfigureAwait(false);
+            Debug.WriteLine($"Genizah update: built {latest.Version}, copied {built.Copied.Count} files, downloaded {string.Join(", ", built.Downloaded)}");
+            Registration.Trust(built.Path, PublicKey);
+            Registration.Switch(built.Path);
+            installed(latest.Version);
+            Clean(store, running, built.Path, null);
+        }
+
+        private static void Clean(VersionStore store, string running, string registered, string partial)
+        {
+            store.Clean(new[] { Path.GetFileName(running), registered == null ? null : Path.GetFileName(registered), partial });
+            Registration.ForgetMissing(VersionsDir);
+        }
+
+        /// <summary>
+        /// True if the add-in runs from a version folder, as an installed copy does. A development
+        /// build runs from its bin folder, and isn't updated.
+        /// </summary>
+        private static bool IsInstalled => IsVersionDir(ModelLoader.AddInDir, out _);
+
+        private static bool IsVersionDir(string dir, out Version version)
+        {
+            version = null;
+            return string.Equals(Path.GetDirectoryName(Path.GetFullPath(dir)), Path.GetFullPath(VersionsDir), StringComparison.OrdinalIgnoreCase)
+                && Version.TryParse(Path.GetFileName(dir), out version);
+        }
+
+        private static Version RunningVersion
+        {
+            get
+            {
+                Version v = typeof(Updater).Assembly.GetName().Version;
+                return new Version(v.Major, v.Minor, v.Build);
             }
         }
-
-        /// <summary>
-        /// Installs the site's current version silently, beside the running one, which stays loaded
-        /// until Word restarts. Silent installs need the site on VSTO's inclusion list, which the
-        /// first install's trust prompt put there.
-        /// </summary>
-        private static Task<int> Install() => Task.Run(() =>
-        {
-            string installer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles),
-                                            "microsoft shared", "VSTO", "10.0", "VSTOInstaller.exe");
-            var start = new ProcessStartInfo(installer, $"/i \"{Site}Genizah.vsto\" /s")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            using (Process process = Process.Start(start))
-            {
-                process.WaitForExit();
-                return process.ExitCode;
-            }
-        });
     }
 }
