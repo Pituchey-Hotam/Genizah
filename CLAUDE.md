@@ -22,6 +22,8 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     can't change under the offsets.
   - `Results/`: the WPF results pane (`ResultsView.xaml`) inside a WinForms task pane. The list
     is flat and virtualized; shortcuts match the typed character, so they follow the layout.
+    Results track live Word ranges, without document bookmarks. Review status stays in the sidebar;
+    selecting a result selects its range in Word. Never use document formatting for review UI.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
     and replacements).
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`

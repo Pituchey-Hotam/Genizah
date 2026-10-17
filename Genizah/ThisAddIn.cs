@@ -64,7 +64,6 @@ namespace Genizah
             if (windows.TryGetValue(window.Hwnd, out var state)) return state;
             state = new WindowResults { Document = window.Document };
             state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
-            state.Pane.VisibleChanged += (sender, args) => HandlePaneVisibleChanged(state);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
             windows.Add(window.Hwnd, state);
             return state;
@@ -145,13 +144,6 @@ namespace Genizah
                     return;
                 }
             }
-
-            // Remove Results HighLights
-            foreach (var result in windows.Values.Where(state => state.Document == doc).SelectMany(state => state.ResultsList))
-            {
-                try { result.Unhighlight(); }
-                catch (Exception) { }
-            }
         }
 
         /// <summary>
@@ -195,8 +187,6 @@ namespace Genizah
                 await scanGate.WaitAsync();
                 entered = true;
                 await ShowProgress(state, timings, ModelLoader.Classifier.IsCompleted ? Stage1 : "טוען את המודל…");
-                using (timings.Measure("clear"))
-                    ClearResults(state);
                 NameClassifier classifier;
                 using (timings.Measure("load_model"))
                     classifier = await ModelLoader.Classifier;
@@ -254,7 +244,7 @@ namespace Genizah
         // A scan's stages, as the pane names them.
         private const string Stage1 = "שלב 1 מתוך 3: סורק את השמות במסמך…";
         private const string Stage2 = "שלב 2 מתוך 3: מסמן את השמות במסמך…";
-        private const string Stage3 = "שלב 3 מתוך 3: מצנזר ומדגיש את השמות…";
+        private const string Stage3 = "שלב 3 מתוך 3: מצנזר את השמות…";
 
         /// <summary>How long the Word-side stages run between letting the pane draw their progress.</summary>
         private static readonly TimeSpan RepaintEvery = TimeSpan.FromMilliseconds(50);
@@ -287,6 +277,8 @@ namespace Genizah
             Application.ScreenUpdating = false;
             try
             {
+                using (timings.Measure("clear"))
+                    ClearResults(state);
                 PositionMap map;
                 using (timings.Measure("build_map"))
                     map = PositionMap.Build(doc, text);
@@ -295,7 +287,7 @@ namespace Genizah
                 if (map == null)
                     timings.Outcome = "ok, without the position map";
                 var sinceRepaint = System.Diagnostics.Stopwatch.StartNew();
-                // Every span is bookmarked before any text changes: bookmarks move with the edits.
+                // Keep live ranges before any text changes: ranges move with edits.
                 foreach (var s in scored)
                 {
                     if (sinceRepaint.Elapsed >= RepaintEvery)
@@ -329,12 +321,10 @@ namespace Genizah
                         sinceRepaint.Restart();
                     }
                     var result = state.ResultsList[i];
-                    using (timings.Measure("censor_highlight"))
+                    using (timings.Measure("censor"))
                     {
                         if (result.Verdict == Verdict.Censor)
                             result.Censor();
-                        if (state.Pane.Visible)
-                            result.Highlight();
                     }
                 }
                 await ShowProgress(state, timings, "מסיים…");
@@ -350,12 +340,6 @@ namespace Genizah
 
         private void ClearResults(WindowResults state)
         {
-            foreach (var result in state.ResultsList)
-            {
-                // Its document may have been closed.
-                try { result.Release(); }
-                catch (Exception) { }
-            }
             state.ResultsList.Clear();
             state.ReviewedText = null;
         }
@@ -372,21 +356,6 @@ namespace Genizah
             return state.Document != null && state.ReviewedText != null
                 && state.Document == doc
                 && DocumentScanner.ReadText(doc) == state.ReviewedText;
-        }
-
-        private void HandlePaneVisibleChanged(WindowResults state)
-        {
-            foreach (var result in state.ResultsList)
-            {
-                try
-                {
-                    if (state.Pane.Visible)
-                        result.Highlight();
-                    else
-                        result.Unhighlight();
-                }
-                catch (Exception) { }
-            }
         }
 
 #if DEBUG

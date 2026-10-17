@@ -30,6 +30,10 @@ asked about otherwise.
 Ask, Censor and Leave, with each one's context and the model's probability that it's divine.
 Selecting a row selects the name in the document.
 
+Review status is shown in the results pane. The add-in does not add document highlights or
+other visual markers. Each scan's text replacements undo together; each individual censor
+or restoration is a separate undo step. Opening or closing the pane adds no undo entries.
+
 Each Word window has its own results pane and review state. Scanning another document preserves
 the first window's results and pane visibility; scans requested in different windows run in order.
 

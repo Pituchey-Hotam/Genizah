@@ -140,7 +140,7 @@ namespace Genizah.Results
                 details.Visibility = Visibility.Visible;
                 try
                 {
-                    item.Result.Bookmark.Select();
+                    item.Result.Range.Select();
                 }
                 catch (COMException)
                 {
@@ -225,7 +225,6 @@ namespace Genizah.Results
             try
             {
                 action(item.Result);
-                item.Result.Highlight();
                 done = true;
             }
             catch (COMException ex)
