@@ -16,7 +16,7 @@ namespace Genizah.Core.Tests
     /// </summary>
     public class ManifestTests : IDisposable
     {
-        /// <summary>The public half of Genizah/Genizah_TemporaryKey.pfx, which signed the build's pair.</summary>
+        /// <summary>The public key that verifies the signed fixtures in testdata/manifests/.</summary>
         private const string BuildKey = "<RSAKeyValue><Modulus>pP2JOUHp4wFx4GRaTvaJa2OyuE8NpPVIkEkuPKyPmRM1MfpOY0uoN0Tbp0zFjX1Qftw3mQyGWlRyHIEbpsPfpwiC/2s6Erkh5Tt+4ot1SGl0bvaxeOJfBNnPGZRccVZZUlfmqyCmXArOymVhMDJJqnfCM4Wtk8P/FSrdlonHr3U=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
 
         private static readonly byte[] BuildVsto = File.ReadAllBytes(TestData.TestDataPath(Path.Combine("manifests", "Genizah.vsto")));

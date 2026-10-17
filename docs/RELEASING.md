@@ -44,7 +44,35 @@ started once.
 
 ### Signing
 
-MSBuild signs `Genizah.vsto` and `Genizah.dll.manifest` with `Genizah/Genizah_TemporaryKey.pfx`.
+MSBuild signs `Genizah.vsto` and `Genizah.dll.manifest` with a private RSA-3072 release key.
+Its self-signed code-signing certificate expires on 2036-10-17; it authenticates updates through
+the pinned public key, and does not provide a publicly trusted Windows publisher identity.
+The private key is never committed. GitHub repository Actions secrets hold:
+
+- `GENIZAH_SIGNING_PFX`: base64 of the password-protected PFX.
+- `GENIZAH_SIGNING_PASSWORD`: the PFX password.
+
+Only `release.yml` passes these secrets to the reusable build with `release-signing: true`.
+`prepare_signing.ps1` imports the certificate into the runner's user store, deletes the temporary
+PFX, and checks its public key against the updater's pin. MSBuild receives the thumbprint;
+`verify_signing.ps1` then verifies both manifest signatures and the installer's matching pin.
+The workflow removes the imported private key even if building or verification fails.
+Missing secrets, an expired certificate, or a wrong key fail the release build.
+
+CI uses a disposable certificate and receives no release secrets, including for fork PRs.
+Its artifacts are for testing; the release workflow rebuilds and signs its own artifacts.
+
+For a local release build, import the release PFX into `Cert:\CurrentUser\My`; the project
+defaults to thumbprint `35DA11DF051232402B8603F8274B3B36837F62AB`.
+Contributors can create a disposable certificate and override the thumbprint instead:
+
+```powershell
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Genizah development' `
+    -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeySpec Signature `
+    -Provider 'Microsoft Enhanced RSA and AES Cryptographic Provider' -CertStoreLocation Cert:\CurrentUser\My
+msbuild Genizah/Genizah.csproj -restore -p:Configuration=Release "-p:ManifestCertificateThumbprint=$($cert.Thumbprint)"
+```
+
 - `Genizah.vsto` pins the `.dll.manifest` by sha256.
 - The `.dll.manifest` lists every file's size and sha256.
 
