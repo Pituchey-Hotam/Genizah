@@ -15,30 +15,34 @@ namespace Genizah
 {
     public partial class ThisAddIn
     {
-        public List<SearchResult> ResultsList = new List<SearchResult>();
-        public ResultsControl resultsControl = new ResultsControl();
-        public CustomTaskPane resultsPane;
+        private sealed class WindowResults
+        {
+            public Word.Document Document;
+            public readonly List<SearchResult> ResultsList = new List<SearchResult>();
+            public readonly ResultsControl Control = new ResultsControl();
+            public CustomTaskPane Pane;
+            public string ReviewedText;
+            public bool Scanning;
+        }
 
+        private readonly Dictionary<int, WindowResults> windows = new Dictionary<int, WindowResults>();
         private const string Title = "צנזור גניזה";
-
-        /// <summary>The document ResultsList belongs to, and its text as of the last change made from the pane.</summary>
-        private Word.Document resultsDocument;
-        private string reviewedText;
-        private bool scanning;
+        // Word's undo record and screen updating are application-wide: serialize scans.
+        private readonly SemaphoreSlim scanGate = new SemaphoreSlim(1, 1);
+        internal SynchronizationContext UiContext { get; private set; }
 
         /// <summary>Set once an update is installed for the next start: shown above the session's scan results.</summary>
         private string updateNotice;
 
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
-            resultsPane = this.CustomTaskPanes.Add(resultsControl, "תוצאות");
-            resultsPane.VisibleChanged += HandlePaneVisibleChanged;
-            resultsControl.ResultChanged += (s, args) => RecordReview();
+            UiContext = new WindowsFormsSynchronizationContext();
+            Application.WindowActivate += Application_WindowActivate;
+            Application.DocumentChange += RemoveClosedWindows;
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             // Off the UI thread, so the first scan doesn't wait for it.
             ModelLoader.StartLoading();
-            var ui = new WindowsFormsSynchronizationContext();
-            _ = Updater.CheckAsync(version => ui.Post(_ => AnnounceUpdate(version), null));
+            _ = Updater.CheckAsync(version => UiContext.Post(_ => AnnounceUpdate(version), null));
         }
 
         /// <summary>Says so quietly: on Word's status bar now, and above the results of the next scan.</summary>
@@ -51,6 +55,41 @@ namespace Genizah
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
         {
+            foreach (var state in windows.Values.ToList()) RemoveWindow(state);
+        }
+
+        private WindowResults GetResults(Word.Window window)
+        {
+            RemoveClosedWindows();
+            if (windows.TryGetValue(window.Hwnd, out var state)) return state;
+            state = new WindowResults { Document = window.Document };
+            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
+            state.Pane.VisibleChanged += (sender, args) => HandlePaneVisibleChanged(state);
+            state.Control.ResultChanged += (sender, args) => RecordReview(state);
+            windows.Add(window.Hwnd, state);
+            return state;
+        }
+
+        private void Application_WindowActivate(Word.Document doc, Word.Window window) => RemoveClosedWindows();
+
+        private void RemoveClosedWindows()
+        {
+            // Keep a closing window's control alive until the scan awaiting scoring finishes.
+            var open = new HashSet<int>();
+            foreach (Word.Window window in Application.Windows) open.Add(window.Hwnd);
+            foreach (var pair in windows.ToList())
+                if (!pair.Value.Scanning && !open.Contains(pair.Key))
+                {
+                    windows.Remove(pair.Key);
+                    RemoveWindow(pair.Value);
+                }
+        }
+
+        private void RemoveWindow(WindowResults state)
+        {
+            ClearResults(state);
+            CustomTaskPanes.Remove(state.Pane);
+            state.Control.Dispose();
         }
 
         /// <summary>
@@ -58,7 +97,7 @@ namespace Genizah
         /// </summary>
         void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
         {
-            if (scanning)
+            if (windows.Values.Any(state => state.Document == doc && state.Scanning))
             {
                 MessageBox.Show("סריקת השמות עדיין פועלת. יש להדפיס שוב בסיומה.", Title);
                 cancel = true;
@@ -66,10 +105,11 @@ namespace Genizah
             }
             try
             {
-                if (IsReviewed(doc))
+                var reviewed = windows.Values.FirstOrDefault(state => IsReviewed(state, doc));
+                if (reviewed != null)
                 {
                     // Scanned, and unchanged since: the pane's results stand.
-                    int pending = ResultsList.Count(r => r.State == ResultState.Pending);
+                    int pending = reviewed.ResultsList.Count(r => r.State == ResultState.Pending);
                     if (pending > 0 && MessageBox.Show($"{pending} שמות במסמך עדיין ממתינים להכרעה בחלונית התוצאות. להדפיס בכל זאת?",
                                                        Title, MessageBoxButtons.YesNo) == DialogResult.No)
                     {
@@ -107,7 +147,7 @@ namespace Genizah
             }
 
             // Remove Results HighLights
-            foreach (var result in ResultsList)
+            foreach (var result in windows.Values.Where(state => state.Document == doc).SelectMany(state => state.ResultsList))
             {
                 try { result.Unhighlight(); }
                 catch (Exception) { }
@@ -138,20 +178,25 @@ namespace Genizah
         /// </summary>
         /// <param name="notice">Shown above the results, if given.</param>
         /// <param name="finished">Called with where the scan's time went, however it ended.</param>
-        public async void CensorNames(Word.Document doc, string notice = null, Action<ScanTimings> finished = null)
+        public async void CensorNames(Word.Document doc, string notice = null, Action<ScanTimings> finished = null, Word.Window window = null)
         {
-            if (scanning) return;
-            scanning = true;
+            var state = GetResults(window ?? doc.ActiveWindow);
+            if (state.Scanning) return;
+            state.Scanning = true;
+            bool entered = false;
             var timings = new ScanTimings();
             // Brings the awaits below back to Word's UI thread, where the document may be touched.
             if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
                 SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
             try
             {
-                resultsPane.Visible = true;
-                await ShowProgress(timings, ModelLoader.Classifier.IsCompleted ? Stage1 : "טוען את המודל…");
+                state.Pane.Visible = true;
+                state.Control.ShowProgress(Stage1);
+                await scanGate.WaitAsync();
+                entered = true;
+                await ShowProgress(state, timings, ModelLoader.Classifier.IsCompleted ? Stage1 : "טוען את המודל…");
                 using (timings.Measure("clear"))
-                    ClearResults();
+                    ClearResults(state);
                 NameClassifier classifier;
                 using (timings.Measure("load_model"))
                     classifier = await ModelLoader.Classifier;
@@ -163,7 +208,7 @@ namespace Genizah
                 var progress = new Progress<(int Done, int Total)>(p =>
                 {
                     using (timings.Measure("progress_ui"))
-                        resultsControl.ShowProgress(Stage1, p.Done, p.Total);
+                        state.Control.ShowProgress(Stage1, p.Done, p.Total);
                 });
                 List<ScoredCandidate> scored;
                 using (timings.Measure("score"))
@@ -173,7 +218,7 @@ namespace Genizah
                 // From here on the scan edits the document, pausing only for the pane to draw.
                 using (new InputLock(doc))
                 {
-                    await ShowProgress(timings, Stage2);
+                    await ShowProgress(state, timings, Stage2);
                     // The spans are offsets into the text as it was scored.
                     bool changed;
                     using (timings.Measure("reread_text"))
@@ -181,24 +226,26 @@ namespace Genizah
                     if (changed)
                     {
                         timings.Outcome = "document changed";
-                        resultsControl.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
+                        state.Control.ShowMessage("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
                         return;
                     }
                     Thresholds thresholds = Thresholds.Load(out string problem);
-                    await ApplyResults(doc, text, scored, thresholds, timings);
+                    await ApplyResults(state, doc, text, scored, thresholds, timings);
                     string shown = string.Join("\n", new[] { problem, notice, updateNotice }.Where(s => s != null));
                     using (timings.Measure("pane"))
-                        resultsControl.ShowSearchResults(ResultsList, shown.Length == 0 ? null : shown);
+                        state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown);
                 }
             }
             catch (Exception ex)
             {
                 timings.Outcome = "failed: " + ex.Message;
-                resultsControl.ShowMessage("הסריקה נכשלה: " + ex.Message);
+                state.Control.ShowMessage("הסריקה נכשלה: " + ex.Message);
             }
             finally
             {
-                scanning = false;
+                if (entered) scanGate.Release();
+                state.Scanning = false;
+                RemoveClosedWindows();
                 System.Diagnostics.Debug.WriteLine("Genizah scan: " + timings.ToJson());
                 finished?.Invoke(timings);
             }
@@ -213,11 +260,11 @@ namespace Genizah
         private static readonly TimeSpan RepaintEvery = TimeSpan.FromMilliseconds(50);
 
         /// <summary>Shows a stage in the pane, and lets it draw before the UI thread goes back to work.</summary>
-        private async Task ShowProgress(ScanTimings timings, string stage, int done = 0, int total = 0)
+        private async Task ShowProgress(WindowResults state, ScanTimings timings, string stage, int done = 0, int total = 0)
         {
             using (timings.Measure("progress_ui"))
             {
-                resultsControl.ShowProgress(stage, done, total);
+                state.Control.ShowProgress(stage, done, total);
                 await Repaint();
             }
         }
@@ -234,7 +281,7 @@ namespace Genizah
         /// on the UI thread, pausing every <see cref="RepaintEvery"/> for the pane to show how far
         /// it is; the caller holds an <see cref="InputLock"/> on the document.
         /// </summary>
-        private async Task ApplyResults(Word.Document doc, string text, List<ScoredCandidate> scored, Thresholds thresholds, ScanTimings timings)
+        private async Task ApplyResults(WindowResults state, Word.Document doc, string text, List<ScoredCandidate> scored, Thresholds thresholds, ScanTimings timings)
         {
             Application.UndoRecord.StartCustomRecord("צנזור שמות לגניזה");
             Application.ScreenUpdating = false;
@@ -253,7 +300,7 @@ namespace Genizah
                 {
                     if (sinceRepaint.Elapsed >= RepaintEvery)
                     {
-                        await ShowProgress(timings, Stage2, ResultsList.Count, scored.Count);
+                        await ShowProgress(state, timings, Stage2, state.ResultsList.Count, scored.Count);
                         sinceRepaint.Restart();
                     }
                     Word.Range range;
@@ -268,74 +315,72 @@ namespace Genizah
                     using (timings.Measure("new_result"))
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
                                                   thresholds?.Probability(s.Logit), verdict, before, after);
-                    ResultsList.Add(result);
+                    state.ResultsList.Add(result);
                     if (result.OriginalText != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
                 }
-                await ShowProgress(timings, Stage3, 0, ResultsList.Count);
+                await ShowProgress(state, timings, Stage3, 0, state.ResultsList.Count);
                 sinceRepaint.Restart();
-                for (int i = 0; i < ResultsList.Count; i++)
+                for (int i = 0; i < state.ResultsList.Count; i++)
                 {
                     if (sinceRepaint.Elapsed >= RepaintEvery)
                     {
-                        await ShowProgress(timings, Stage3, i, ResultsList.Count);
+                        await ShowProgress(state, timings, Stage3, i, state.ResultsList.Count);
                         sinceRepaint.Restart();
                     }
-                    var result = ResultsList[i];
+                    var result = state.ResultsList[i];
                     using (timings.Measure("censor_highlight"))
                     {
                         if (result.Verdict == Verdict.Censor)
                             result.Censor();
-                        if (resultsPane.Visible)
+                        if (state.Pane.Visible)
                             result.Highlight();
                     }
                 }
-                await ShowProgress(timings, "מסיים…");
+                await ShowProgress(state, timings, "מסיים…");
             }
             finally
             {
                 Application.ScreenUpdating = true;
                 Application.UndoRecord.EndCustomRecord();
             }
-            resultsDocument = doc;
             using (timings.Measure("record_review"))
-                RecordReview();
+                RecordReview(state);
         }
 
-        private void ClearResults()
+        private void ClearResults(WindowResults state)
         {
-            foreach (var result in ResultsList)
+            foreach (var result in state.ResultsList)
             {
                 // Its document may have been closed.
                 try { result.Release(); }
                 catch (Exception) { }
             }
-            ResultsList.Clear();
-            resultsDocument = null;
-            reviewedText = null;
+            state.ResultsList.Clear();
+            state.ReviewedText = null;
         }
 
-        private void RecordReview()
+        private void RecordReview(WindowResults state)
         {
-            try { reviewedText = resultsDocument == null ? null : DocumentScanner.ReadText(resultsDocument); }
-            catch (Exception) { reviewedText = null; }
+            try { state.ReviewedText = state.Document == null ? null : DocumentScanner.ReadText(state.Document); }
+            catch (Exception) { state.ReviewedText = null; }
         }
 
         /// <summary>True if the pane's results are for this document, and it hasn't changed since.</summary>
-        private bool IsReviewed(Word.Document doc)
+        private bool IsReviewed(WindowResults state, Word.Document doc)
         {
-            return resultsDocument != null && reviewedText != null
-                && resultsDocument.FullName == doc.FullName
-                && DocumentScanner.ReadText(doc) == reviewedText;
+            return state.Document != null && state.ReviewedText != null
+                && state.Document == doc
+                && DocumentScanner.ReadText(doc) == state.ReviewedText;
         }
 
-        private void HandlePaneVisibleChanged(object sender, EventArgs e)
+        private void HandlePaneVisibleChanged(WindowResults state)
         {
-            foreach (var result in this.ResultsList)
+            foreach (var result in state.ResultsList)
             {
                 try
                 {
-                    if (this.resultsPane.Visible)
+                    if (state.Pane.Visible)
                         result.Highlight();
                     else
                         result.Unhighlight();
@@ -345,6 +390,18 @@ namespace Genizah
         }
 
 #if DEBUG
+        internal string InspectWindowResults()
+        {
+            RemoveClosedWindows();
+            return string.Join("\n", windows.Select(pair => string.Join("|",
+                pair.Key, ((Word.Window)pair.Value.Pane.Window).Hwnd,
+                pair.Value.Pane.Visible, pair.Value.ResultsList.Count,
+                pair.Value.ResultsList.Count(result => result.State == ResultState.Pending),
+                IsReviewed(pair.Value, pair.Value.Document), pair.Value.Scanning)));
+        }
+
+        internal void SetWindowPaneVisible(int hwnd, bool visible) => windows[hwnd].Pane.Visible = visible;
+
         /// <summary>What Application.COMAddIns("Genizah").Object returns: tools/benchmark's way in.</summary>
         protected override object RequestComAddInAutomationService() => new BenchmarkHook();
 #endif

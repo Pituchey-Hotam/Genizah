@@ -30,6 +30,9 @@ asked about otherwise.
 Ask, Censor and Leave, with each one's context and the model's probability that it's divine.
 Selecting a row selects the name in the document.
 
+Each Word window has its own results pane and review state. Scanning another document preserves
+the first window's results and pane visibility; scans requested in different windows run in order.
+
 Keyboard: the arrows move, Enter/Space opens or closes a group, צ (or C) censors and ה (or L)
 leaves or undoes a censor, then moves to the next row.
 
