@@ -5,6 +5,16 @@ name: Build and test
 
 on:
   workflow_call:
+    inputs:
+      release-signing:
+        description: Use the private release certificate rather than a disposable CI certificate
+        type: boolean
+        default: false
+    secrets:
+      GENIZAH_SIGNING_PFX:
+        required: false
+      GENIZAH_SIGNING_PASSWORD:
+        required: false
     outputs:
       version:
         description: The VERSION file's MAJOR.MINOR.PATCH
@@ -52,14 +62,27 @@ jobs:
         shell: pwsh
         run: ./tools/dist/fetch_model.ps1
 
-      # The build signs the manifests by the csproj's ManifestCertificateThumbprint, which it looks
-      # up in the user's certificate store.
-      - name: Import the signing certificate
+      # Only CD receives the private key. PRs (including forks) use a disposable certificate.
+      - name: Prepare the signing certificate
+        id: signing
         shell: pwsh
-        run: Import-PfxCertificate -FilePath Genizah/Genizah_TemporaryKey.pfx -CertStoreLocation Cert:\CurrentUser\My | Out-Null
+        env:
+          GENIZAH_SIGNING_PFX: ${{ secrets.GENIZAH_SIGNING_PFX }}
+          GENIZAH_SIGNING_PASSWORD: ${{ secrets.GENIZAH_SIGNING_PASSWORD }}
+        run: ./tools/dist/prepare_signing.ps1 -ReleaseSigning:$${{ inputs.release-signing }}
 
       - name: Build the add-in
-        run: msbuild Genizah/Genizah.csproj -restore -t:Build -p:Configuration=Release -v:minimal
+        run: msbuild Genizah/Genizah.csproj -restore -t:Build -p:Configuration=Release -p:ManifestKeyFile= -p:ManifestCertificateThumbprint=${{ steps.signing.outputs.thumbprint }} -v:minimal
+
+      - name: Verify the release signer
+        if: inputs.release-signing
+        shell: powershell
+        run: ./tools/dist/verify_signing.ps1
+
+      - name: Remove the signing certificate
+        if: always() && steps.signing.outputs.thumbprint != ''
+        shell: pwsh
+        run: Remove-Item -LiteralPath 'Cert:\CurrentUser\My\${{ steps.signing.outputs.thumbprint }}' -DeleteKey
 
       - name: Package
         shell: pwsh

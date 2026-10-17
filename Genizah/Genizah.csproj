@@ -270,10 +270,9 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>Genizah_TemporaryKey.pfx</ManifestKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestCertificateThumbprint>1698474E2F4E7E0A3B9928295A45204D4B8C84CC</ManifestCertificateThumbprint>
+    <!-- The private release certificate lives in the user's store, never in the repository.
+         CI overrides this with a disposable certificate; CD imports the GitHub secret. -->
+    <ManifestCertificateThumbprint>35DA11DF051232402B8603F8274B3B36837F62AB</ManifestCertificateThumbprint>
   </PropertyGroup>
   <!-- Include the build rules for a C# project. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -10,7 +10,7 @@
 #define Source "out\version"
 
 ; The public half of the key that signs the manifests: Genizah/Updater.cs's PublicKey.
-#define PublicKey "<RSAKeyValue><Modulus>pP2JOUHp4wFx4GRaTvaJa2OyuE8NpPVIkEkuPKyPmRM1MfpOY0uoN0Tbp0zFjX1Qftw3mQyGWlRyHIEbpsPfpwiC/2s6Erkh5Tt+4ot1SGl0bvaxeOJfBNnPGZRccVZZUlfmqyCmXArOymVhMDJJqnfCM4Wtk8P/FSrdlonHr3U=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>"
+#define PublicKey "<RSAKeyValue><Modulus>l+KhMOR15/7DRDaIDYDncJknBnBHJ52rXYN8fC53tVxjUh6Bq14yASSLZgpNKRQPx3KAPb0vMtvCjZjqycWIRupIWsE+KGVYWM9DRkCwfhUp0VXT2AYrrUwiI/MeZ5P3bVG4Q8F7hVn65pQj5iAG6rheJQ6JXBu6MlgX76KRodRQg3IQIBRZ8dxNJJTNiNLOujoKKVe0gSxcdnegrwvaRzYcQpqM4k0IBx315CrwLhGhzYCJNb13y09TS7yCYkpuV8z28RRneRy5M0guyWzVyk6ZcHXjVP4ML64zuwD9BUMUj2BhwSkmTWXLpJ5fDYoP1IedqG3uX/zWrMvFWbCmKMMtUeSjE0byLuvPNdtu9YbvIQd5bXHi3Xg3+2jHzCjRX2RzjrgkHsaz7sX8nbpTQs9LF2TzxkCib5GSxkX3gi0D9RyXHCWzycrca9w9pYCsgPxWeNcHecwsfY0zKbU0n3mxM/ooZSq18EgtmuzZL6GNlWJQSSaRprQCARBe3GiJ</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>"
 
 [Setup]
 AppId={{83AF029A-C5BF-4EC3-A4A4-5A4226B8C653}

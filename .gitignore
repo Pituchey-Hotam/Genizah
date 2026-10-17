@@ -405,6 +405,8 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio
 
 ### Genizah ###
+# Local release-key backup and Windows-user-encrypted password.
+.signing/
 # Full-data parity vectors (LocalParityTests): not distributed.
 Genizah.Core.Tests/testdata/local/
 # Model binaries are distributed separately; model/manifest.json records which one.

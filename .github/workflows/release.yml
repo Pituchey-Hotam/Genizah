@@ -19,6 +19,11 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    with:
+      release-signing: true
+    secrets:
+      GENIZAH_SIGNING_PFX: ${{ secrets.GENIZAH_SIGNING_PFX }}
+      GENIZAH_SIGNING_PASSWORD: ${{ secrets.GENIZAH_SIGNING_PASSWORD }}
 
   release:
     needs: build
