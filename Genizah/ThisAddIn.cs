@@ -22,10 +22,16 @@ namespace Genizah
             public readonly ResultsControl Control = new ResultsControl();
             public CustomTaskPane Pane;
             public string ReviewedText;
+            public string ObservedText;
+            public bool ReviewInvalidated;
             public bool Scanning;
         }
 
         private readonly Dictionary<int, WindowResults> windows = new Dictionary<int, WindowResults>();
+        private readonly Dictionary<Word.Document, bool> pendingReconciliations = new Dictionary<Word.Document, bool>();
+        private bool reconciling;
+        private bool editingResult;
+        private bool shuttingDown;
         private const string Title = "צנזור גניזה";
         // Word's undo record and screen updating are application-wide: serialize scans.
         private readonly SemaphoreSlim scanGate = new SemaphoreSlim(1, 1);
@@ -38,6 +44,7 @@ namespace Genizah
         {
             UiContext = new WindowsFormsSynchronizationContext();
             Application.WindowActivate += Application_WindowActivate;
+            Application.WindowSelectionChange += Application_WindowSelectionChange;
             Application.DocumentChange += RemoveClosedWindows;
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             // Off the UI thread, so the first scan doesn't wait for it.
@@ -55,6 +62,8 @@ namespace Genizah
 
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
         {
+            shuttingDown = true;
+            Application.WindowSelectionChange -= Application_WindowSelectionChange;
             foreach (var state in windows.Values.ToList()) RemoveWindow(state);
         }
 
@@ -65,11 +74,74 @@ namespace Genizah
             state = new WindowResults { Document = window.Document };
             state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
+            state.Control.ReviewRequested += (sender, args) => ReconcileDocument(state.Document);
             windows.Add(window.Hwnd, state);
             return state;
         }
 
-        private void Application_WindowActivate(Word.Document doc, Word.Window window) => RemoveClosedWindows();
+        private void Application_WindowActivate(Word.Document doc, Word.Window window)
+        {
+            RemoveClosedWindows();
+            QueueReconciliation(doc, true);
+        }
+
+        private void Application_WindowSelectionChange(Word.Selection selection)
+        {
+            try { QueueReconciliation(selection.Document); }
+            catch (System.Runtime.InteropServices.COMException) { }
+        }
+
+        private void QueueReconciliation(Word.Document doc, bool force = false)
+        {
+            if (shuttingDown || !windows.Values.Any(state => state.Document == doc && !state.Scanning && state.ResultsList.Count > 0)) return;
+            if (pendingReconciliations.TryGetValue(doc, out bool queuedForce))
+            {
+                pendingReconciliations[doc] = force || queuedForce;
+                return;
+            }
+            pendingReconciliations.Add(doc, force);
+            UiContext.Post(_ =>
+            {
+                bool requestedForce = pendingReconciliations[doc];
+                pendingReconciliations.Remove(doc);
+                if (!shuttingDown) ReconcileDocument(doc, requestedForce);
+            }, null);
+        }
+
+        private void ReconcileDocument(Word.Document doc, bool force = false)
+        {
+            if (reconciling || editingResult || shuttingDown) return;
+            reconciling = true;
+            try
+            {
+                string text = DocumentScanner.ReadText(doc);
+                foreach (var state in windows.Values.ToList())
+                {
+                    if (state.Document != doc || state.Scanning || state.ResultsList.Count == 0) continue;
+                    if (!force && state.ObservedText == text) continue;
+                    if (state.ObservedText != text)
+                    {
+                        // Matching tracked names does not establish that all document text was reviewed.
+                        state.ReviewInvalidated = true;
+                        state.ReviewedText = null;
+                    }
+                    state.ObservedText = text;
+                    bool changed = false;
+                    foreach (var result in state.ResultsList) changed |= result.Reconcile();
+                    if (changed) state.Control.RefreshResults();
+                }
+            }
+            catch (System.Runtime.InteropServices.COMException) { } // Document closed or Word is temporarily busy.
+            finally { reconciling = false; }
+        }
+
+        internal void BeginResultEdit() => editingResult = true;
+
+        internal void EndResultEdit(Word.Document doc)
+        {
+            editingResult = false;
+            QueueReconciliation(doc);
+        }
 
         private void RemoveClosedWindows()
         {
@@ -104,6 +176,7 @@ namespace Genizah
             }
             try
             {
+                ReconcileDocument(doc, true);
                 var reviewed = windows.Values.FirstOrDefault(state => IsReviewed(state, doc));
                 if (reviewed != null)
                 {
@@ -235,6 +308,7 @@ namespace Genizah
             {
                 if (entered) scanGate.Release();
                 state.Scanning = false;
+                QueueReconciliation(doc, true);
                 RemoveClosedWindows();
                 System.Diagnostics.Debug.WriteLine("Genizah scan: " + timings.ToJson());
                 finished?.Invoke(timings);
@@ -335,18 +409,26 @@ namespace Genizah
                 Application.UndoRecord.EndCustomRecord();
             }
             using (timings.Measure("record_review"))
-                RecordReview(state);
+                RecordReview(state, true);
         }
 
         private void ClearResults(WindowResults state)
         {
             state.ResultsList.Clear();
             state.ReviewedText = null;
+            state.ObservedText = null;
+            state.ReviewInvalidated = false;
         }
 
-        private void RecordReview(WindowResults state)
+        private void RecordReview(WindowResults state, bool freshScan = false)
         {
-            try { state.ReviewedText = state.Document == null ? null : DocumentScanner.ReadText(state.Document); }
+            try
+            {
+                if (freshScan) state.ReviewInvalidated = false;
+                state.ObservedText = state.Document == null ? null : DocumentScanner.ReadText(state.Document);
+                state.ReviewedText = state.ReviewInvalidated || state.ResultsList.Any(result => result.IsStale) ? null : state.ObservedText;
+                QueueReconciliation(state.Document);
+            }
             catch (Exception) { state.ReviewedText = null; }
         }
 
@@ -354,11 +436,40 @@ namespace Genizah
         private bool IsReviewed(WindowResults state, Word.Document doc)
         {
             return state.Document != null && state.ReviewedText != null
+                && !state.ReviewInvalidated && !state.ResultsList.Any(result => result.IsStale)
                 && state.Document == doc
                 && DocumentScanner.ReadText(doc) == state.ReviewedText;
         }
 
 #if DEBUG
+        internal void SeedReview(int hwnd, int start, int end, bool leave)
+        {
+            foreach (Word.Window window in Application.Windows)
+                if (window.Hwnd == hwnd)
+                {
+                    var state = GetResults(window);
+                    ClearResults(state);
+                    state.ResultsList.Add(new SearchResult(window.Document, window.Document.Range(start, end),
+                        NameInfo.ById("havaya"), 0, null, leave ? Verdict.Leave : Verdict.Ask, "", ""));
+                    state.Pane.Visible = true;
+                    state.Control.ShowSearchResults(state.ResultsList, null);
+                    RecordReview(state, true);
+                    return;
+                }
+            throw new ArgumentException("Window not found");
+        }
+
+        internal bool ReviewResult(int hwnd, int index, bool censor) => windows[hwnd].Control.ReviewResult(index, censor);
+
+        internal string InspectResultRanges(int hwnd)
+        {
+            var state = windows[hwnd];
+            Func<string, string> encode = text => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text ?? ""));
+            return string.Join("\n", state.ResultsList.Select((result, index) => string.Join("\t",
+                index, result.Range.Start, result.Range.End, encode(result.Range.Text),
+                encode(result.OriginalText), encode(result.CensoredText), result.State, result.IsStale)));
+        }
+
         internal string InspectWindowResults()
         {
             RemoveClosedWindows();

@@ -5,13 +5,14 @@
              FlowDirection="RightToLeft"
              FontFamily="Segoe UI" FontSize="12"
              TextOptions.TextFormattingMode="Display"
-             PreviewTextInput="View_PreviewTextInput">
+             PreviewTextInput="View_PreviewTextInput"
+             IsKeyboardFocusWithinChanged="View_FocusChanged">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Genizah;component/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <!-- The same colors the names are highlighted with in the document. -->
+            <!-- Review status colors appear only in the sidebar. -->
             <SolidColorBrush x:Key="PendingMark" Color="#F2C811"/>
             <SolidColorBrush x:Key="CensoredMark" Color="#3CB043"/>
             <SolidColorBrush x:Key="LeftMark" Color="#A19F9D"/>
@@ -63,7 +64,7 @@
             </DataTemplate>
 
             <DataTemplate DataType="{x:Type local:ResultItem}">
-                <Grid Height="26">
+                <Grid x:Name="resultRow" Height="26" ToolTip="{Binding StatusText}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="16"/>
                         <ColumnDefinition Width="12"/>
@@ -83,6 +84,10 @@
                     <DataTrigger Binding="{Binding State}" Value="Left">
                         <Setter TargetName="mark" Property="Fill" Value="{StaticResource LeftMark}"/>
                         <Setter TargetName="snippet" Property="Foreground" Value="{StaticResource SecondaryText}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsStale}" Value="True">
+                        <Setter TargetName="mark" Property="Fill" Value="{StaticResource LeftMark}"/>
+                        <Setter TargetName="resultRow" Property="Opacity" Value="0.5"/>
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
