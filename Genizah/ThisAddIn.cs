@@ -25,6 +25,7 @@ namespace Genizah
             public string ObservedText;
             public bool ReviewInvalidated;
             public bool Scanning;
+            public bool HasCompletedReview;
         }
 
         private readonly Dictionary<int, WindowResults> windows = new Dictionary<int, WindowResults>();
@@ -75,8 +76,22 @@ namespace Genizah
             state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
             state.Control.ReviewRequested += (sender, args) => ReconcileDocument(state.Document);
+            state.Control.ScanRequested += (sender, args) => CensorNames(state.Document, window: window);
             windows.Add(window.Hwnd, state);
             return state;
+        }
+
+        /// <summary>Opens this window's review, starting its first scan when needed.</summary>
+        public void ShowReview(Word.Window window)
+        {
+            var state = GetResults(window);
+            if (!state.Scanning && !state.HasCompletedReview)
+            {
+                CensorNames(state.Document, window: window);
+                return;
+            }
+            state.Pane.Visible = true;
+            QueueReconciliation(state.Document);
         }
 
         private void Application_WindowActivate(Word.Document doc, Word.Window window)
@@ -163,77 +178,68 @@ namespace Genizah
             state.Control.Dispose();
         }
 
-        /// <summary>
-        /// Handles a print event, warning the user of any names and offering to censor
-        /// </summary>
-        void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
+        private PrintReviewStatus GetPrintReviewStatus(Word.Document doc, out WindowResults review, out int pending)
         {
-            if (windows.Values.Any(state => state.Document == doc && state.Scanning))
-            {
-                MessageBox.Show("סריקת השמות עדיין פועלת. יש להדפיס שוב בסיומה.", Title);
-                cancel = true;
-                return;
-            }
+            pending = 0;
+            review = windows.Values.FirstOrDefault(state => state.Document == doc && state.Scanning);
+            if (review != null) return PrintReviewStatus.Scanning;
+            var possible = windows.Values.Where(state => state.Document == doc
+                && !state.ReviewInvalidated && state.ReviewedText != null
+                && !state.ResultsList.Any(result => result.IsStale)).ToList();
+            if (possible.Count == 0) return PrintReviewStatus.Unreviewed;
+            // Read text only when there is a potentially current review to verify.
+            // No model work or Word range walk is allowed in this hook.
+            string text = DocumentScanner.ReadText(doc);
+            review = possible.FirstOrDefault(state => state.ReviewedText == text);
+            if (review == null) return PrintReviewStatus.Unreviewed;
+            pending = review.ResultsList.Count(result => result.State == ResultState.Pending);
+            return pending == 0 ? PrintReviewStatus.Current : PrintReviewStatus.Pending;
+        }
+
+        private void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
+        {
+            if (!AddInSettings.Current.CheckBeforePrinting) return;
             try
             {
-                ReconcileDocument(doc, true);
-                var reviewed = windows.Values.FirstOrDefault(state => IsReviewed(state, doc));
-                if (reviewed != null)
+                var status = GetPrintReviewStatus(doc, out var review, out int pending);
+#if DEBUG
+                lastPrintStatus = status;
+#endif
+                if (status == PrintReviewStatus.Current) return;
+                var window = doc.ActiveWindow;
+                var reviewWindow = review == null ? window : (Word.Window)review.Pane.Window;
+#if DEBUG
+                var choice = printChoiceOverride != null ? printChoiceOverride(status, pending) : PrintReviewDialog.ShowOver(window, status, pending);
+#else
+                var choice = PrintReviewDialog.ShowOver(window, status, pending);
+#endif
+                if (choice == PrintReviewChoice.Print) return;
+                cancel = true;
+                if (choice != PrintReviewChoice.Review) return;
+                // Finish cancelling this print before opening review or starting an explicit scan.
+                int hwnd = reviewWindow.Hwnd;
+                UiContext.Post(_ =>
                 {
-                    // Scanned, and unchanged since: the pane's results stand.
-                    int pending = reviewed.ResultsList.Count(r => r.State == ResultState.Pending);
-                    if (pending > 0 && MessageBox.Show($"{pending} שמות במסמך עדיין ממתינים להכרעה בחלונית התוצאות. להדפיס בכל זאת?",
-                                                       Title, MessageBoxButtons.YesNo) == DialogResult.No)
-                    {
-                        cancel = true;
-                        return;
-                    }
-                }
-                else if (ContainsNames(doc))
-                {
-                    DialogResult dialogResult = MessageBox.Show("מסמך זה מכיל שמות שאינם נמחקים וטעון גניזה. האם תרצה לצנזר שמות ה' לפני הדפסה?\n" +
-                                                                "ההדפסה תבוטל כדי שתוכל לעבור על התוצאות, ואחר כך יש להדפיס שוב.",
-                                                                Title,
-                                                                MessageBoxButtons.YesNoCancel);
-                    if (dialogResult == DialogResult.Yes)
-                    {
-                        cancel = true;
-                        CensorNames(doc, "לאחר ההכרעה בשמות יש להדפיס שוב.");
-                        return;
-                    }
-                    else if (dialogResult == DialogResult.Cancel)
-                    {
-                        cancel = true;
-                        return;
-                    }
-                }
+                    foreach (Word.Window open in Application.Windows)
+                        if (open.Hwnd == hwnd)
+                        {
+                            open.Activate();
+                            if (status == PrintReviewStatus.Unreviewed)
+                                CensorNames(doc, "לאחר הסקירה יש להדפיס שוב.", window: open);
+                            else
+                                ShowReview(open);
+                            return;
+                        }
+                }, null);
             }
             catch (Exception ex)
             {
-                if (MessageBox.Show("לא ניתן היה לבדוק את המסמך לשמות: " + ex.Message + "\nלהדפיס בכל זאת?",
+#if DEBUG
+                if (probingPrint) throw;
+#endif
+                if (MessageBox.Show("לא ניתן היה לוודא שהסקירה עדכנית: " + ex.Message + "\nלהדפיס ללא בדיקה?",
                                     Title, MessageBoxButtons.YesNo) == DialogResult.No)
-                {
                     cancel = true;
-                    return;
-                }
-            }
-        }
-
-        /// <summary>
-        /// True if the document has a name to censor or ask about. Runs the classifier on the UI
-        /// thread, stopping at the first such name; a print can't wait for an async answer.
-        /// </summary>
-        public bool ContainsNames(Word.Document doc)
-        {
-            Cursor.Current = Cursors.WaitCursor;
-            try
-            {
-                NameClassifier classifier = ModelLoader.Classifier.GetAwaiter().GetResult();
-                return DocumentScanner.HasNamesToCensor(classifier, DocumentScanner.ReadText(doc), Thresholds.Load(out _));
-            }
-            finally
-            {
-                Cursor.Current = Cursors.Default;
             }
         }
 
@@ -248,6 +254,7 @@ namespace Genizah
             var state = GetResults(window ?? doc.ActiveWindow);
             if (state.Scanning) return;
             state.Scanning = true;
+            state.HasCompletedReview = false;
             bool entered = false;
             var timings = new ScanTimings();
             // Brings the awaits below back to Word's UI thread, where the document may be touched.
@@ -297,6 +304,7 @@ namespace Genizah
                     string shown = string.Join("\n", new[] { problem, notice, updateNotice }.Where(s => s != null));
                     using (timings.Measure("pane"))
                         state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown);
+                    state.HasCompletedReview = true;
                 }
             }
             catch (Exception ex)
@@ -442,6 +450,29 @@ namespace Genizah
         }
 
 #if DEBUG
+        internal void RequestPaneScan(int hwnd) => windows[hwnd].Control.RequestScan();
+        internal string InspectReviewUi(int hwnd) => windows[hwnd].Control.InspectReviewUi();
+        private Func<PrintReviewStatus, int, PrintReviewChoice> printChoiceOverride;
+        private PrintReviewStatus lastPrintStatus;
+        private bool probingPrint;
+
+        internal string ProbeBeforePrint(int hwnd, int choice)
+        {
+            foreach (Word.Window window in Application.Windows)
+                if (window.Hwnd == hwnd)
+                {
+                    bool cancelled = false;
+                    probingPrint = true;
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    printChoiceOverride = choice < 0 ? null : new Func<PrintReviewStatus, int, PrintReviewChoice>((status, pending) => (PrintReviewChoice)choice);
+                    try { Application_DocumentBeforePrint(window.Document, ref cancelled); }
+                    finally { printChoiceOverride = null; probingPrint = false; }
+                    return "{\"status\":\"" + lastPrintStatus + "\",\"cancelled\":" + cancelled.ToString().ToLowerInvariant()
+                        + ",\"elapsed_ms\":" + watch.Elapsed.TotalMilliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "}";
+                }
+            throw new ArgumentException("Window not found");
+        }
+
         internal void SeedReview(int hwnd, int start, int end, bool leave)
         {
             foreach (Word.Window window in Application.Windows)
@@ -453,6 +484,7 @@ namespace Genizah
                         NameInfo.ById("havaya"), 0, null, leave ? Verdict.Leave : Verdict.Ask, "", ""));
                     state.Pane.Visible = true;
                     state.Control.ShowSearchResults(state.ResultsList, null);
+                    state.HasCompletedReview = true;
                     RecordReview(state, true);
                     return;
                 }

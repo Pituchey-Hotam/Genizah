@@ -20,6 +20,7 @@ namespace Genizah.Core
         [DataMember(Name = "replacements")] public Dictionary<string, string> Replacements { get; private set; }
 
         [DataMember(Name = "check_for_updates")] public bool CheckForUpdates { get; set; }
+        [DataMember(Name = "check_before_printing")] public bool CheckBeforePrinting { get; set; }
 
         public UserSettings() => SetDefaults();
 
@@ -37,6 +38,7 @@ namespace Genizah.Core
         {
             Replacements = new Dictionary<string, string>();
             CheckForUpdates = true;
+            CheckBeforePrinting = true;
         }
 
         /// <summary>The settings in <paramref name="path"/>, or the defaults if it is missing or unreadable.</summary>

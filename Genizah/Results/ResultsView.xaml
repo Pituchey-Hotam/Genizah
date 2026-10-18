@@ -99,9 +99,12 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="summary" Margin="12,10,12,8" TextWrapping="Wrap"/>
+        <StackPanel x:Name="reviewHeader" Margin="12,10,12,8">
+            <TextBlock x:Name="summary" TextWrapping="Wrap"/>
+        </StackPanel>
 
         <!-- A scan's progress: its stage, a bar (moving while the stage has no count), and the count. -->
         <StackPanel x:Name="progressPanel" Margin="12,10,12,8" Visibility="Collapsed">
@@ -147,6 +150,12 @@
                            Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
                            TextWrapping="Wrap"/>
             </StackPanel>
+        </Border>
+        <Border x:Name="scanFooter" Grid.Row="3" BorderBrush="{StaticResource Divider}"
+                BorderThickness="0,1,0,0" Padding="8,4">
+            <Button x:Name="scanButton" Content="סרוק שוב" Style="{StaticResource FlatButton}"
+                    HorizontalAlignment="Right" Click="Scan_Click"
+                    ToolTip="סרוק את המסמך מחדש"/>
         </Border>
     </Grid>
 </UserControl>

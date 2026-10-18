@@ -26,12 +26,15 @@ namespace Genizah.Results
         /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
         public event EventHandler ResultChanged;
         public event EventHandler ReviewRequested;
+        public event EventHandler ScanRequested;
 
         public ResultsView()
         {
             InitializeComponent();
             list.ItemsSource = items;
         }
+
+        private void Scan_Click(object sender, RoutedEventArgs e) => ScanRequested?.Invoke(this, EventArgs.Empty);
 
         /// <summary>Shows a message in place of results: what went wrong, say.</summary>
         public void ShowMessage(string message)
@@ -70,7 +73,8 @@ namespace Genizah.Results
         private void ShowProgressPanel(bool show)
         {
             progressPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            summary.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+            reviewHeader.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+            scanFooter.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
             // Stops the moving bar's animation along with it.
             if (!show) progressBar.IsIndeterminate = false;
         }
@@ -110,6 +114,17 @@ namespace Genizah.Results
         }
 
 #if DEBUG
+        internal void RequestScan() => scanButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+        internal string InspectReviewUi()
+        {
+            var selected = list.SelectedItem as ResultItem;
+            return string.Join("|", progressPanel.Visibility == Visibility.Visible ? "progress" : "review",
+                scanButton.Content, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(summary.Text)),
+                selected == null ? -1 : results.IndexOf(selected.Result),
+                string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)));
+        }
+
         internal bool ReviewResult(int index, bool censor)
         {
             details.DataContext = groupRows.Values.SelectMany(rows => rows).First(row => row.Result == results[index]);

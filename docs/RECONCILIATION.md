@@ -9,7 +9,7 @@ because their text cannot distinguish a decision. No matching search or range re
 Word selection events schedule one deferred reconciliation per document. Window activation
 also requests validation, while sidebar focus, selection and actions check current state
 synchronously as needed. Document text is read once per pass; unchanged text skips the full
-range walk unless forced by activation, scan completion or printing. Scanning and the
+range walk unless forced by activation or scan completion. Scanning and the
 add-in's own replacements suppress reentrant reconciliation. Selected rows are individually
 validated before navigation and actions, including when the full text is unchanged.
 
@@ -28,8 +28,10 @@ review state remains independent.
 
 Print freshness is separate from row validity. An external text change invalidates the
 session's reviewed-document snapshot, even if all tracked names are recognized. A later
-sidebar action does not clear that invalidation; a fresh successful scan does. The existing
-print-time classifier check handles documents without a current reviewed snapshot.
+sidebar action does not clear that invalidation; a fresh successful scan does. Printing only
+compares potentially current review snapshots with current text, without reconciling Word ranges
+or classifying names. Without a matching review, it offers printing unchecked, checking first,
+or cancelling. Only explicitly choosing Check first starts a scan, after cancelling that print.
 
 ## Validation
 

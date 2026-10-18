@@ -9,7 +9,7 @@ using System.Windows.Interop;
 namespace Genizah
 {
     /// <summary>
-    /// The add-in's settings: the replacement each name is censored to, and whether to update.
+    /// The add-in's settings: replacements, print checks and automatic updates.
     /// </summary>
     public partial class CensorSettingsDialog : Window
     {
@@ -20,6 +20,8 @@ namespace Genizah
             InitializeComponent();
             rows.ItemsSource = names;
             checkForUpdates.IsChecked = AddInSettings.Current.CheckForUpdates;
+            checkBeforePrinting.IsChecked = AddInSettings.Current.CheckBeforePrinting;
+            checkBeforePrinting.Loaded += (s, e) => UnmirrorCheckMark(checkBeforePrinting);
             checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
         }
 
@@ -58,6 +60,7 @@ namespace Genizah
             foreach (Row row in names)
                 row.Name.setSelectedReplacement(row.Replacement.Trim());
             AddInSettings.Current.CheckForUpdates = checkForUpdates.IsChecked == true;
+            AddInSettings.Current.CheckBeforePrinting = checkBeforePrinting.IsChecked == true;
             try
             {
                 AddInSettings.Save();
