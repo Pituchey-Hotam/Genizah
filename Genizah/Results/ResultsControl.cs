@@ -17,11 +17,13 @@ namespace Genizah
 
         /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
         public event EventHandler ResultChanged;
+        public event EventHandler ReviewRequested;
 
         public ResultsControl()
         {
             Controls.Add(new ElementHost { Dock = DockStyle.Fill, Child = view });
             view.ResultChanged += (sender, e) => ResultChanged?.Invoke(this, EventArgs.Empty);
+            view.ReviewRequested += (sender, e) => ReviewRequested?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>Shows a message in place of results: what went wrong, say.</summary>
@@ -32,5 +34,9 @@ namespace Genizah
 
         /// <inheritdoc cref="ResultsView.ShowSearchResults"/>
         public void ShowSearchResults(List<SearchResult> results, string notice) => view.ShowSearchResults(results, notice);
+        public void RefreshResults() => view.RefreshResults();
+#if DEBUG
+        internal bool ReviewResult(int index, bool censor) => view.ReviewResult(index, censor);
+#endif
     }
 }

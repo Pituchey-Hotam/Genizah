@@ -30,6 +30,15 @@ asked about otherwise.
 Ask, Censor and Leave, with each one's context and the model's probability that it's divine.
 Selecting a row selects the name in the document.
 
+Review status is shown in the results pane. The add-in does not add document highlights or
+other visual markers. Each scan's text replacements undo together; each individual censor
+or restoration is a separate undo step. Opening or closing the pane adds no undo entries.
+
+The pane updates after undo and redo, preserving explicit Leave decisions. If an edit or a
+batch undo breaks a result's tracked range, that row is dimmed and its actions are disabled
+while the range is unrecognized; the add-in does not search for a replacement occurrence. Other valid rows
+remain usable. Undoing a partial edit can restore a row when its range is still intact.
+
 Each Word window has its own results pane and review state. Scanning another document preserves
 the first window's results and pane visibility; scans requested in different windows run in order.
 

@@ -22,6 +22,11 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     can't change under the offsets.
   - `Results/`: the WPF results pane (`ResultsView.xaml`) inside a WinForms task pane. The list
     is flat and virtualized; shortcuts match the typed character, so they follow the layout.
+    Results track live Word ranges, without document bookmarks. Review status stays in the sidebar;
+    selecting a result selects its range in Word. Never use document formatting for review UI.
+    Selection events defer and coalesce read-only reconciliation: original/censored spellings update
+    status, unrecognized ranges disable only that row. Explicit Leave decisions persist separately;
+    external text changes invalidate print-review freshness until a fresh scan.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
     and replacements).
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
@@ -40,6 +45,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   together; a new graph comes with its own vocabulary, thresholds and vectors.
 - `tools/benchmark/`: times a scan in a running Word (Debug build). Pass several sizes with
   `powershell -Command`, not `-File`.
+  `probe_undo_events.ps1` measures opt-in Debug undo/redo event coverage; results and limits
+  are in `docs/UNDO_EVENTS.md`.
+  `probe_live_ranges.ps1` checks live range boundaries through individual and grouped undo/redo;
+  see `docs/LIVE_RANGE_UNDO.md` before relying on ranges after whole-scan undo.
 
 ## Rules
 

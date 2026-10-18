@@ -25,6 +25,7 @@ namespace Genizah.Results
 
         /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
         public event EventHandler ResultChanged;
+        public event EventHandler ReviewRequested;
 
         public ResultsView()
         {
@@ -101,6 +102,21 @@ namespace Genizah.Results
             ShowSummary();
         }
 
+        public void RefreshResults()
+        {
+            foreach (var rows in groupRows.Values)
+                foreach (var row in rows) row.Refresh();
+            ShowSummary();
+        }
+
+#if DEBUG
+        internal bool ReviewResult(int index, bool censor)
+        {
+            details.DataContext = groupRows.Values.SelectMany(rows => rows).First(row => row.Result == results[index]);
+            return censor ? Censor() : Leave();
+        }
+#endif
+
         private void Toggle(GroupHeader header)
         {
             int at = items.IndexOf(header) + 1;
@@ -136,11 +152,15 @@ namespace Genizah.Results
         {
             if (list.SelectedItem is ResultItem item)
             {
+                ReviewRequested?.Invoke(this, EventArgs.Empty);
+                item.Result.Reconcile();
+                item.Refresh();
+                ShowSummary();
                 details.DataContext = item;
                 details.Visibility = Visibility.Visible;
                 try
                 {
-                    item.Result.Bookmark.Select();
+                    if (!item.Result.IsStale) item.Result.Range.Select();
                 }
                 catch (COMException)
                 {
@@ -160,6 +180,11 @@ namespace Genizah.Results
             FocusSelected();
         }
 
+        private void View_FocusChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if ((bool)e.NewValue) ReviewRequested?.Invoke(this, EventArgs.Empty);
+        }
+
         private void Leave_Click(object sender, RoutedEventArgs e)
         {
             Leave();
@@ -173,6 +198,11 @@ namespace Genizah.Results
         private void View_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             if (!(details.DataContext is ResultItem item)) return;
+            if (e.Text != "צ" && e.Text != "ה" && e.Text.ToLowerInvariant() != "c" && e.Text.ToLowerInvariant() != "l") return;
+            ReviewRequested?.Invoke(this, EventArgs.Empty);
+            item.Result.Reconcile();
+            item.Refresh();
+            ShowSummary();
             bool acted;
             switch (e.Text.ToLowerInvariant())
             {
@@ -195,7 +225,7 @@ namespace Genizah.Results
         {
             for (int i = items.IndexOf(item) + 1; i < items.Count; i++)
             {
-                if (items[i] is ResultItem next)
+                if (items[i] is ResultItem next && !next.Result.IsStale)
                 {
                     list.SelectedItem = next;
                     return;
@@ -219,13 +249,21 @@ namespace Genizah.Results
         private bool Act(Action<SearchResult> action, string undoName)
         {
             if (!(details.DataContext is ResultItem item)) return false;
+            ReviewRequested?.Invoke(this, EventArgs.Empty);
+            item.Result.Reconcile();
+            item.Refresh();
+            ShowSummary();
+            if (item.Result.IsStale) return false;
+            var document = item.Result.Range.Document;
             bool done = false;
             var undo = Globals.ThisAddIn.Application.UndoRecord;
-            undo.StartCustomRecord(undoName);
+            bool recording = false;
+            Globals.ThisAddIn.BeginResultEdit();
             try
             {
+                undo.StartCustomRecord(undoName);
+                recording = true;
                 action(item.Result);
-                item.Result.Highlight();
                 done = true;
             }
             catch (COMException ex)
@@ -234,20 +272,23 @@ namespace Genizah.Results
             }
             finally
             {
-                undo.EndCustomRecord();
+                try { if (recording) undo.EndCustomRecord(); }
+                finally { Globals.ThisAddIn.EndResultEdit(document); }
             }
             item.Refresh();
             ShowSummary();
-            ResultChanged?.Invoke(this, EventArgs.Empty);
+            if (done) ResultChanged?.Invoke(this, EventArgs.Empty);
             return done;
         }
 
         private void ShowSummary()
         {
             string text = results.Count == 0 ? "לא נמצאו שמות." :
-                $"ממתינים להכרעה: {results.Count(r => r.State == ResultState.Pending)} · " +
-                $"צונזרו: {results.Count(r => r.State == ResultState.Censored)} · " +
-                $"הושארו: {results.Count(r => r.State == ResultState.Left)}";
+                $"ממתינים להכרעה: {results.Count(r => !r.IsStale && r.State == ResultState.Pending)} · " +
+                $"צונזרו: {results.Count(r => !r.IsStale && r.State == ResultState.Censored)} · " +
+                $"הושארו: {results.Count(r => !r.IsStale && r.State == ResultState.Left)}";
+            int stale = results.Count(r => r.IsStale);
+            if (stale > 0) text += $" · דרושה סריקה מחדש: {stale}";
             summary.Text = notice == null ? text : text + "\n" + notice;
         }
     }

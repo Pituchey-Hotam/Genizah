@@ -63,14 +63,16 @@ namespace Genizah.Results
         public string ContextAfter => Result.ContextAfter;
 
         public ResultState State => Result.State;
-        public bool CanCensor => Result.State != ResultState.Censored;
-        public bool CanLeave => Result.State == ResultState.Pending;
-        public bool CanUndo => Result.State == ResultState.Censored;
+        public bool IsStale => Result.IsStale;
+        public bool CanCensor => !Result.IsStale && Result.State != ResultState.Censored;
+        public bool CanLeave => !Result.IsStale && Result.State == ResultState.Pending;
+        public bool CanUndo => !Result.IsStale && Result.State == ResultState.Censored;
 
         public string StatusText
         {
             get
             {
+                if (Result.IsStale) return "הטקסט השתנה — יש לסרוק שוב";
                 switch (Result.State)
                 {
                     case ResultState.Pending: return "ממתין להכרעה";
