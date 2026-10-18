@@ -15,7 +15,8 @@ namespace Genizah
 
         private void CensorNamesBtn_Click(object sender, RibbonControlEventArgs e)
         {
-            Globals.ThisAddIn.CensorNames(Globals.ThisAddIn.Application.ActiveDocument);
+            var window = (Microsoft.Office.Interop.Word.Window)e.Control.Context;
+            Globals.ThisAddIn.CensorNames(window.Document, window: window);
         }
 
         private void GenizahGroup_DialogLauncherClick(object sender, RibbonControlEventArgs e)
