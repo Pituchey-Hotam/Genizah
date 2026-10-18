@@ -212,6 +212,7 @@
     <Compile Include="Results\SearchResult.cs" />
     <Compile Include="AddInSettings.cs" />
     <Compile Include="NameInfo.cs" />
+    <Compile Include="PrintReviewDialog.cs" />
     <Compile Include="Registration.cs" />
     <Compile Include="Scanning\BenchmarkHook.cs" />
     <Compile Include="Scanning\DocumentScanner.cs" />

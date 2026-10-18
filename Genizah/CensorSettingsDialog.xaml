@@ -73,9 +73,14 @@
 
             <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
                     Padding="0,12,0,0" Margin="0,14,0,0">
-                <CheckBox x:Name="checkForUpdates" FontSize="13" VerticalContentAlignment="Center"
-                          Content="עדכן את גניזה אוטומטית"
-                          ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
+                <StackPanel>
+                    <CheckBox x:Name="checkBeforePrinting" FontSize="13" VerticalContentAlignment="Center"
+                              Content="בדוק את מצב הסקירה לפני הדפסה" Margin="0,0,0,10"
+                              ToolTip="כאשר האפשרות כבויה, גניזה אינה בודקת או מציגה הודעות בעת הדפסה."/>
+                    <CheckBox x:Name="checkForUpdates" FontSize="13" VerticalContentAlignment="Center"
+                              Content="עדכן את גניזה אוטומטית"
+                              ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
+                </StackPanel>
             </Border>
         </StackPanel>
     </DockPanel>

@@ -31,6 +31,10 @@ namespace Genizah.Scanning
         void InspectResultRanges(int hwnd, string outputPath);
         void ReviewResult(int hwnd, int index, bool censor, string outputPath);
         void SeedReview(int hwnd, int start, int end, bool leave, string outputPath);
+        void OpenReview(int hwnd, string outputPath);
+        void RequestPaneScan(int hwnd, string outputPath);
+        void InspectReviewUi(int hwnd, string outputPath);
+        void ProbeBeforePrint(int hwnd, int choice, string outputPath);
     }
 
     [ComVisible(true)]
@@ -38,6 +42,35 @@ namespace Genizah.Scanning
     public class BenchmarkHook : IBenchmarkHook
     {
         private UndoEventProbe eventProbe;
+
+        public void OpenReview(int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try
+            {
+                foreach (Word.Window window in Globals.ThisAddIn.Application.Windows)
+                    if (window.Hwnd == hwnd) { Globals.ThisAddIn.ShowReview(window); WriteOutput(outputPath, "ok"); return; }
+                throw new ArgumentException("Window not found");
+            }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
+
+        public void RequestPaneScan(int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try { Globals.ThisAddIn.RequestPaneScan(hwnd); WriteOutput(outputPath, "ok"); }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
+
+        public void InspectReviewUi(int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try { WriteOutput(outputPath, Globals.ThisAddIn.InspectReviewUi(hwnd)); }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
+
+        public void ProbeBeforePrint(int hwnd, int choice, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try { WriteOutput(outputPath, Globals.ThisAddIn.ProbeBeforePrint(hwnd, choice)); }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
 
         public void SeedReview(int hwnd, int start, int end, bool leave, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
         {

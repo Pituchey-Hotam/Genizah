@@ -37,18 +37,6 @@ namespace Genizah.Scanning
             return scored;
         }
 
-        /// <summary>
-        /// True if <paramref name="text"/> has a candidate that isn't a plain Leave: the check
-        /// before printing, which stops at the first one.
-        /// </summary>
-        public static bool HasNamesToCensor(NameClassifier classifier, string text, Thresholds thresholds)
-        {
-            foreach (var s in classifier.Scan(text, out _))
-                if (thresholds == null || thresholds.Decide(s.Candidate.NameId, s.Logit) != Verdict.Leave)
-                    return true;
-            return false;
-        }
-
         /// <summary>The Word range of [rawStart, rawEnd) in <see cref="ReadText"/>'s offsets.</summary>
         public static Word.Range ToRange(Word.Document doc, Word.Characters chars, int rawStart, int rawEnd)
         {

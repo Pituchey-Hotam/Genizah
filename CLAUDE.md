@@ -27,6 +27,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     Selection events defer and coalesce read-only reconciliation: original/censored spellings update
     status, unrecognized ranges disable only that row. Explicit Leave decisions persist separately;
     external text changes invalidate print-review freshness until a fresh scan.
+    The ribbon starts a scan on first opening, then reopens this window's existing review
+    or progress. A compact footer action explicitly rescans, including after a clean scan. Printing
+    compares cached review snapshots and offers a choice through `PrintReviewDialog`; it never
+    runs inference or walks Word result ranges. Check first cancels printing and schedules a scan.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
     and replacements).
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`

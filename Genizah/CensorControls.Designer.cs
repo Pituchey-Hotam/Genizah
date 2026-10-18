@@ -63,7 +63,8 @@
             // 
             this.CensorNamesBtn.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
             this.CensorNamesBtn.Image = global::Genizah.Properties.Resources.CensorNames;
-            this.CensorNamesBtn.Label = "צנזר שמות";
+            this.CensorNamesBtn.Label = "סקירת שמות";
+            this.CensorNamesBtn.ScreenTip = "פתח את חלונית הסקירה";
             this.CensorNamesBtn.Name = "CensorNamesBtn";
             this.CensorNamesBtn.ShowImage = true;
             this.CensorNamesBtn.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.CensorNamesBtn_Click);

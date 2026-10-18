@@ -26,7 +26,10 @@ asked about otherwise.
 
 ## Using it
 
-**צנזר שמות** on the גניזה ribbon group scans the document. The results pane groups the names into
+**סקירת שמות** on the גניזה ribbon group scans on first opening, then reopens the existing
+review or scan progress. Choose **סרוק שוב** at the bottom of the pane for a fresh scan.
+Reopening the pane preserves results, decisions and view state; an ongoing scan shows its progress.
+The results pane groups the names into
 Ask, Censor and Leave, with each one's context and the model's probability that it's divine.
 Selecting a row selects the name in the document.
 
@@ -41,6 +44,11 @@ remain usable. Undoing a partial edit can restore a row when its range is still 
 
 Each Word window has its own results pane and review state. Scanning another document preserves
 the first window's results and pane visibility; scans requested in different windows run in order.
+
+Printing never starts an automatic classifier check. A current review with no Pending rows prints
+directly; unresolved rows offer printing anyway or returning to review. Without a current review,
+choose **הדפס ללא בדיקה**, **בדוק תחילה**, or **ביטול**. Checking first cancels that print attempt and
+starts an explicit scan; print again after reviewing. No background checks run automatically.
 
 Keyboard: the arrows move, Enter/Space opens or closes a group, צ (or C) censors and ה (or L)
 leaves or undoes a censor, then moves to the next row.
