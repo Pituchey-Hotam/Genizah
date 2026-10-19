@@ -29,5 +29,34 @@ namespace Genizah.Core.Tests
         {
             Assert.Equal(expected, NameCensor.Apply(raw, baseForm, replacement));
         }
+
+        [Theory]
+        [InlineData("ש-די")]
+        [InlineData("-די")]
+        [InlineData("ה'")]
+        [InlineData("שד-")]
+        public void ShadayReplacementPreservesAmbiguousProclitics(string replacement)
+        {
+            foreach (string prefix in new[] { "", "מ", "שב", "שבה", "כשב", "ושל", "וכשבה" })
+            {
+                string raw = prefix + "שדי";
+                var candidate = Assert.Single(NameFinder.Find(raw));
+                Assert.Equal("shaday", candidate.NameId);
+                Assert.Equal(raw, candidate.Text);
+                Assert.Equal(prefix + replacement, NameCensor.Apply(raw, "שדי", replacement));
+            }
+        }
+
+        [Theory]
+        [InlineData("ש-די", "שֶׁבְּשַׁ-דַּי")]
+        [InlineData("-די", "שֶׁבְּ-דַּי")]
+        [InlineData("ה'", "שֶׁבְּה'")]
+        public void AmbiguousProcliticsKeepTheirNikud(string replacement, string expected)
+        {
+            const string raw = "שֶׁבְּשַׁדַּי";
+            var candidate = Assert.Single(NameFinder.Find(TextNormalizer.NormalizeWithOffsets(raw).Text));
+            Assert.Equal("shaday", candidate.NameId);
+            Assert.Equal(expected, NameCensor.Apply(raw, "שדי", replacement));
+        }
     }
 }
