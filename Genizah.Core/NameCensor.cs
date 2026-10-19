@@ -44,7 +44,7 @@ namespace Genizah.Core
 
             var norm = TextNormalizer.NormalizeWithOffsets(raw);
             string text = norm.Text;
-            int nameStart = NameStart(text, baseForm[0]);
+            int nameStart = NameStart(text, baseForm);
             if (nameStart < 0)
                 return replacement;
 
@@ -72,11 +72,16 @@ namespace Genizah.Core
         }
 
         /// <summary>Where the name's first letter is, past any proclitics; -1 if nowhere.</summary>
-        private static int NameStart(string text, char first)
+        private static int NameStart(string text, string baseForm)
         {
+            char first = baseForm[0];
             for (int i = 0; i < text.Length; i++)
             {
-                if (text[i] == first)
+                // Shin can begin both a proclitic and Shaday. Validate the whole name
+                // before accepting an ambiguous first letter, even for an early edit
+                // such as inserting a dash after shin or replacing the first letter.
+                if (text[i] == first && (Proclitics.IndexOf(first) < 0
+                    || Align(text, i, baseForm, baseForm.Length) != null))
                     return i;
                 if (Proclitics.IndexOf(text[i]) < 0)
                     return -1;
