@@ -1,7 +1,7 @@
 {
  "about": "The shipping model: its graph, sha256s and input contract. The .onnx file is not in git: it is the GitHub release model-<first 12 hex digits of model_sha256> (tools/dist/fetch_model.ps1).",
  "model_file": "model.int8-int4emb.onnx",
- "model_sha256": "6690bfc4c7ac3e903f03782d12f01330def47093f69820790f14b850716ca586",
+ "model_sha256": "dbdba75b45842f9fec75792b7fbcaa4216205b612df730c82c33c624f2b499b7",
  "tokenizer_sha256": "ee375c25873d723b02d0f60d4d53305091ec8fc0a97825b7f79b9859a228bd58",
  "data_sha256": "a21887b8a08c0122fd6a09d0e641b64fb2c14e7bbdf1c91ab2f615b6938512b3",
  "window": "normalize(left)[-32:] + target + normalize(right)[:32]",

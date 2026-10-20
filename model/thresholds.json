@@ -1,26 +1,26 @@
 {
  "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). Every name in censor_always is censored whatever its score. A name in neither is always asked about. temperature calibrates a logit into a probability, sigmoid(logit / temperature).",
- "model_sha256": "6690bfc4c7ac3e903f03782d12f01330def47093f69820790f14b850716ca586",
+ "model_sha256": "dbdba75b45842f9fec75792b7fbcaa4216205b612df730c82c33c624f2b499b7",
  "ask_budget": 0.1,
- "temperature": 1.7128085685741063,
+ "temperature": 1.7287307341288691,
  "names": [
   {
    "name": "elohim",
    "false_censor_tolerance": 0.1,
-   "censor_at": 6.676350831985474,
-   "leave_below": -7.379904508590698
+   "censor_at": 6.743499517440796,
+   "leave_below": -7.563012599945068
   },
   {
    "name": "eloha",
    "false_censor_tolerance": 0.05,
-   "censor_at": -9.05539846420288,
-   "leave_below": -9.05539846420288
+   "censor_at": -9.068956851959229,
+   "leave_below": -9.068956851959229
   },
   {
    "name": "el",
    "false_censor_tolerance": 0.01,
-   "censor_at": -3.3975090980529785,
-   "leave_below": -8.07073450088501
+   "censor_at": -2.8545453548431396,
+   "leave_below": -8.248581886291504
   }
  ],
  "censor_always": [

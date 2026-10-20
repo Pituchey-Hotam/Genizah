@@ -40,8 +40,8 @@ namespace Genizah.Core.Tests
             var t = Shipped();
             Assert.True(t.Temperature > 1);
             Assert.Equal(0.5, t.Probability(0f));
-            // The calibration's own figure: elohim's censor_at +6.68 is 0.980.
-            Assert.Equal(0.980, t.Probability(6.676351f).Value, 3);
+            // The calibration's own figure: elohim's censor_at +6.74 is 0.980.
+            Assert.Equal(0.980, t.Probability(6.7435f).Value, 3);
             Assert.Equal(1 - t.Probability(3f).Value, t.Probability(-3f).Value, 12);
         }
 
