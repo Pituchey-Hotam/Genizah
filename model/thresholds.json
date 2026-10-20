@@ -1,5 +1,5 @@
 {
- "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). Every name in censor_always is censored whatever its score. A name in neither is always asked about. temperature calibrates a logit into a probability, sigmoid(logit / temperature).",
+ "about": "Censor at or above censor_at, leave below leave_below, ask in between (raw logits). A censor_at of 1e+09 is never reached: that name is left or asked about, never censored. Every name in censor_always is censored whatever its score. A name in neither is always asked about. temperature calibrates a logit into a probability, sigmoid(logit / temperature).",
  "model_sha256": "dbdba75b45842f9fec75792b7fbcaa4216205b612df730c82c33c624f2b499b7",
  "ask_budget": 0.1,
  "temperature": 1.7287307341288691,
@@ -17,6 +17,11 @@
    "leave_below": -9.068956851959229
   },
   {
+   "name": "ehye",
+   "censor_at": 1000000000.0,
+   "leave_below": -8.3
+  },
+  {
    "name": "el",
    "false_censor_tolerance": 0.01,
    "censor_at": -2.8545453548431396,
@@ -29,7 +34,6 @@
  "ask_always": [
   "adnut",
   "tsvaot",
-  "ehye",
   "shaday"
  ]
 }

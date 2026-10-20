@@ -18,10 +18,10 @@ namespace Genizah.Core.Tests
         }
 
         [Fact]
-        public void ShippedThresholdsAreOrderedHavayaIsAlwaysCensoredAndTheRareNamesHaveNone()
+        public void ShippedThresholdsAreOrderedHavayaIsAlwaysCensoredEhyeIsNeverCensoredAndTheOtherRareNamesHaveNone()
         {
             var t = Shipped();
-            Assert.Equal(new[] { "el", "eloha", "elohim", "havaya" }, t.Names.OrderBy(n => n));
+            Assert.Equal(new[] { "ehye", "el", "eloha", "elohim", "havaya" }, t.Names.OrderBy(n => n));
             foreach (string name in t.Names)
             {
                 Assert.True(t.TryGet(name, out double censorAt, out double leaveBelow));
@@ -30,7 +30,11 @@ namespace Genizah.Core.Tests
             Assert.True(t.TryGet("havaya", out double havayaCensorAt, out double havayaLeaveBelow));
             Assert.Equal(double.NegativeInfinity, havayaCensorAt);
             Assert.Equal(double.NegativeInfinity, havayaLeaveBelow);
-            foreach (string rare in new[] { "ehye", "shaday", "adnut", "tsvaot" })
+            // ehye is left below a cut and asked about above it: its censor_at is beyond any logit.
+            Assert.True(t.TryGet("ehye", out double ehyeCensorAt, out double ehyeLeaveBelow));
+            Assert.True(ehyeCensorAt >= 1e9);
+            Assert.True(ehyeLeaveBelow < 0);
+            foreach (string rare in new[] { "shaday", "adnut", "tsvaot" })
                 Assert.False(t.TryGet(rare, out _, out _), rare);
         }
 
