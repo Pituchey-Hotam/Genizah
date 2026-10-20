@@ -50,7 +50,7 @@ namespace Genizah.Core
         // Hebrew letters, written once so the patterns below read like the training code's.
         private const string Alef = "א", Bet = "ב", Dalet = "ד", He = "ה", Vav = "ו",
             Yod = "י", FinalKaf = "ך", Kaf = "כ", Lamed = "ל", FinalMem = "ם",
-            Mem = "מ", FinalNun = "ן", Nun = "נ", Tsadi = "צ", Shin = "ש", Tav = "ת";
+            Mem = "מ", FinalNun = "ן", Nun = "נ", FinalPe = "ף", Tsadi = "צ", Shin = "ש", Tav = "ת";
 
         private static readonly string LetterClass = "[" + Alef + "-" + Tav + "]";
 
@@ -90,6 +90,22 @@ namespace Genizah.Core
         private static readonly string ElohimAramaicTailAlt = "(?:" + Alef + "|" + Yod + FinalNun
             + "|" + Yod + Alef + "|" + FinalKaf + "|" + He + "|" + Kaf + FinalMem + "|" + Kaf + Vav + FinalNun
             + "|" + He + FinalMem + "|" + He + Vav + FinalNun + "|" + Nun + Alef + ")";
+
+        /// <summary>
+        /// The training code's GERSHAYIM_CHARS: every quote character the normalizer leaves as " or ',
+        /// plus the ones it maps there, in the training code's order.
+        /// </summary>
+        private static readonly string GershayimChars = "\"'" + new string(new[]
+        {
+            (char)0x05F4, (char)0x05F3, (char)0x201C, (char)0x201D, (char)0x201E, (char)0x201F, (char)0x2033,
+            (char)0x2018, (char)0x2019, (char)0x201A, (char)0x201B, (char)0x2032, (char)0x0060, (char)0x00B4,
+        });
+
+        /// <summary>
+        /// The training code's _EL_NOT_ALEF: an אל followed by gershayim and ף is the letter name אל"ף
+        /// (האות אל"ף, האל"ף-בי"ת), never the divine name.
+        /// </summary>
+        private static readonly string ElNotAlef = "(?!" + Mark + "*[" + GershayimChars + "]" + Mark + "*" + FinalPe + ")";
 
         /// <summary>The training code's SKELETONS: each name's letters, and which are optional.</summary>
         private static readonly Dictionary<string, (string Letter, bool Optional)[]> Skeletons =
@@ -146,7 +162,7 @@ namespace Genizah.Core
                 rest = "(?:" + rest + "|" + SkeletonBody(letters.Skip(1).Take(3)) + Mark + "*" + ElohimAramaicTailAlt + ")";
             string proclitic = BareShNames.Contains(name) ? ProcliticUndashedBareSh : ProcliticUndashed;
             return "(?<!" + LetterClass + ")" + proclitic + letters[0].Letter + Mark + "*"
-                + rest + "(?!" + LetterClass + ")";
+                + rest + "(?!" + LetterClass + ")" + (name == "el" ? ElNotAlef : "");
         }
 
         /// <summary>The training code's _skeleton_body.</summary>
