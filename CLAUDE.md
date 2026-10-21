@@ -60,7 +60,9 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     compares cached review snapshots and offers a choice through `PrintReviewDialog`; it never
     runs inference or walks Word result ranges. Check first cancels printing and schedules a scan.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
-    and replacements).
+    and replacements). `AboutDialog.xaml`, opened from the settings dialog and by itself on the
+    first ribbon click (`about_shown` in the user's settings), holds the halachic disclaimer and
+    the credits; keep its credits in step with `NOTICE`.
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
     (`Genizah.Core/UserSettings`), shared by every version and Word build.
 - `Genizah.Core/` (netstandard2.0, and net48 so the add-in gets `SignedXml` from the framework):

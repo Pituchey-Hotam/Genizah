@@ -22,6 +22,9 @@ namespace Genizah.Core
         [DataMember(Name = "check_for_updates")] public bool CheckForUpdates { get; set; }
         [DataMember(Name = "check_before_printing")] public bool CheckBeforePrinting { get; set; }
 
+        /// <summary>Whether the About dialog has opened by itself, on the user's first use of the add-in.</summary>
+        [DataMember(Name = "about_shown")] public bool AboutShown { get; set; }
+
         public UserSettings() => SetDefaults();
 
         // The serializer doesn't run constructors: a member missing from the file keeps these.
@@ -39,6 +42,7 @@ namespace Genizah.Core
             Replacements = new Dictionary<string, string>();
             CheckForUpdates = true;
             CheckBeforePrinting = true;
+            AboutShown = false;
         }
 
         /// <summary>The settings in <paramref name="path"/>, or the defaults if it is missing or unreadable.</summary>

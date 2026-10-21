@@ -210,6 +210,9 @@
     <Compile Include="CensorControls.Designer.cs">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </Compile>
+    <Compile Include="AboutDialog.xaml.cs">
+      <DependentUpon>AboutDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="CensorSettingsDialog.xaml.cs">
       <DependentUpon>CensorSettingsDialog.xaml</DependentUpon>
     </Compile>
@@ -240,6 +243,10 @@
     <EmbeddedResource Include="CensorControls.resx">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </EmbeddedResource>
+    <Page Include="AboutDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="CensorSettingsDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
