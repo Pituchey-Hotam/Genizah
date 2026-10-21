@@ -14,16 +14,22 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     check's outcome goes to `%LOCALAPPDATA%\Genizah\update.log`, whose last real check the settings
     dialog shows beside the running version. It forces TLS 1.2: an add-in's
     AppDomain otherwise offers only SSL 3/TLS 1.0, which GitHub refuses.
-  - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
-    `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
+  - `Scanning/DocumentScanner`: the classifier sees the text of every story Word prints
+    (`PrintedStories`: the body, footnotes and endnotes, each section's unlinked headers and
+    footers, and text boxes and shapes, grouped ones included; not review comments), joined by
+    paragraph marks. Within a story, offset i is `Characters[i + 1]`, except that a content
+    control's marks are characters with no text. Scoring runs off the UI thread; anything
+    touching Word runs on it.
     Every range the scan reads text or characters from goes through `Plain` (field results,
     never codes, whatever the view), and its text through `WordText.ToUnicode`: Word reads its
     optional and non-breaking hyphens, note marks and column breaks as control characters,
     which are mapped one for one to Unicode before the pipeline. Censoring writes hyphens as
     Word's own non-breaking hyphen (`WordText.ForWord`); U+2011 falls back to another font in
     most Hebrew fonts.
-  - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
-    whole document's `Characters`; it's slow far into a document. Beside a field, `Characters`
+  - `Scanning/PositionMap`: offsets → Word ranges, per story, by paragraph arithmetic. A range
+    in another story is made from that story's range (`DocumentScanner.Span`), never
+    `doc.Range`, which is always the body. Avoid indexing a whole story's `Characters`; it's slow
+    far into a document. Where a paragraph has to, it steps past content control marks. Beside a field, `Characters`
     widens a character over the field's hidden marks and code, and a paragraph after a field's
     end starts with the previous paragraph's mark; `DocumentScanner.Bounds` and `Chunk.Skip`
     undo both, so censoring a link's text or a TOC entry edits only the letters, not the field.
@@ -61,10 +67,12 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   together; a new graph comes with its own vocabulary, thresholds and vectors.
 - `tools/benchmark/`: times a scan in a running Word (Debug build). Pass several sizes with
   `powershell -Command`, not `-File`. The `test_*.ps1` scripts are Word regression tests through
-  the Debug COM hook. `make_example.ps1` builds the example document: prose on page one, and on
-  page two the name in every printed place outside the body text (tables, text boxes, shapes,
-  header, footer, notes) plus a review comment, which isn't printed and must be left;
-  `test_example.ps1` scans it and checks each place.
+  the Debug COM hook. `make_example.ps1` builds the example document: prose on page one; on page
+  two the name in every printed place outside the body text (tables, text boxes, shapes,
+  header, footer, notes) plus a review comment, which isn't printed and must be left; on page
+  three the name beside fields (links, a table of contents, a page number);
+  `test_example.ps1` scans it with field codes hidden and shown, and checks each place and that
+  every field and link survives.
 
 ## Rules
 

@@ -1,13 +1,17 @@
 ﻿<#
 .SYNOPSIS
 Builds the example document: hand-written prose around Bible quotes and liturgy on the first
-page, and on the second the name in every place Word keeps text outside the body.
+page, on the second the name in every place Word keeps text outside the body, and on the third
+the name beside fields.
 
 .DESCRIPTION
 The second page puts the name in a table and a table nested in it, a content control, a text
 box, a shape with text, grouped text boxes, the section's header (and a text box in it) and
 footer, a footnote and an endnote: all printed, so a scan must censor every one. It also puts
-the name in a review comment, which isn't printed and must be left alone.
+the name in a review comment, which isn't printed and must be left alone. The third page puts
+the name beside fields, which censoring must leave whole: at the start of a link's text, in a
+link inside a content control, in a table of contents and the heading right after it; the
+footer has a page number field.
 
 Each case uses havaya, which is always censored, so whether it was censored doesn't depend on
 the model. Returns the cases: where the name is, the text that follows it (unique in the
@@ -34,6 +38,8 @@ $wdRelativeVerticalPositionParagraph = 2
 $wdShapeRight = -999996
 $msoTextOrientationHorizontal = 1
 $msoShapeRectangle = 1
+$wdStyleHeading1 = -2
+$wdFieldPage = 33
 $wdFormatDocumentDefault = 16
 $wdDoNotSaveChanges = 0
 
@@ -159,6 +165,42 @@ try {
     $nested.Borders.Enable = $true
     $nested.Cell(1, 1).Range.Text = Add-Case 'nested table' '' ' רעי לא אחסר'
 
+    # Page three: the name beside Word's fields, which censoring must leave whole.
+    $first = $doc.Paragraphs.Count + 1
+    $end = $doc.Content.End - 1
+    $doc.Range($end, $end).InsertAfter("`r" + (@(
+        'שדות'
+        'כאן השם צמוד לשדות: בקישור, בקישור שבתוך פקד תוכן, בתוכן העניינים ובכותרת שאחריו. הצנזור משנה רק את האותיות, והשדות נשארים שלמים.'
+        ''
+        'פרק א: ' + (Add-Case 'heading after the table of contents' '' ' מחסי')
+        'קישור: ' + (Add-Case 'link' '' ' עוז למו')
+        'פקד תוכן ובו קישור:'
+        ''
+        'פרק ב: ' + (Add-Case 'table of contents entry' '' ' אורי וישעי')
+        'סוף הדוגמה.'
+    ) -join "`r"))
+    function Field([int]$i) { $doc.Paragraphs.Item($first + $i - 1).Range }
+    $title = Field 1
+    $title.ParagraphFormat.PageBreakBefore = $true
+    $title.Font.SizeBi = 22
+    $title.Font.BoldBi = 1
+    $title.ParagraphFormat.Alignment = 1
+    $title.ParagraphFormat.SpaceAfter = 18
+    foreach ($i in 4, 8) {
+        $heading = Field $i
+        $heading.Style = $wdStyleHeading1
+        Format-Hebrew $heading 16
+        $heading.Font.BoldBi = 1
+    }
+    # The name starts the link's text, beside its hidden opening mark and code.
+    $p = Field 5
+    $doc.Hyperlinks.Add($doc.Range($p.Start + 'קישור: '.Length, $p.End - 1), 'https://example.com/') | Out-Null
+    $cc = $doc.ContentControls.Add($wdContentControlRichText, (Field 7))
+    $cc.Range.Text = 'ראו ' + (Add-Case 'link in a content control' '' ' שפטנו')
+    $doc.Hyperlinks.Add($doc.Range($cc.Range.Start + 'ראו '.Length, $cc.Range.End), 'https://example.org/') | Out-Null
+    # Last, so it lists both headings; the heading after it starts right after its last mark.
+    $doc.TablesOfContents.Add((Field 3)) | Out-Null
+
     # The second section's own header and footer; the first page keeps none.
     $header = $section.Headers.Item($wdHeaderFooterPrimary)
     $header.LinkToPrevious = $false
@@ -172,8 +214,11 @@ try {
     $box.Top = 0
     $footer = $section.Footers.Item($wdHeaderFooterPrimary)
     $footer.LinkToPrevious = $false
-    $footer.Range.Text = Add-Case 'footer' '' ' ישמר צאתך ובואך'
+    $footer.Range.Text = 'עמוד  · ' + (Add-Case 'footer, beside a page number' '' ' ישמר צאתך ובואך')
     Format-Hebrew $footer.Range 11
+    $at = $footer.Range.Characters.Item('עמוד '.Length + 1)
+    $at.Collapse(1)
+    $doc.Fields.Add($at, $wdFieldPage) | Out-Null
 
     New-Item -ItemType Directory -Force (Split-Path $Path) | Out-Null
     $doc.SaveAs2([string]$Path, $wdFormatDocumentDefault)
