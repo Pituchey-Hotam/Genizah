@@ -15,11 +15,14 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     dialog shows beside the running version. It forces TLS 1.2: an add-in's
     AppDomain otherwise offers only SSL 3/TLS 1.0, which GitHub refuses.
   - `Scanning/DocumentScanner`: the classifier sees the text of every story Word prints
-    (`PrintedStories`: the body, footnotes and endnotes, each section's unlinked headers and
-    footers, and text boxes and shapes, grouped ones included; not review comments), joined by
-    paragraph marks. Within a story, offset i is `Characters[i + 1]`, except that a content
-    control's marks are characters with no text. Scoring runs off the UI thread; anything
-    touching Word runs on it.
+    (`PrintedStories`: the body, footnotes and endnotes, text boxes and shapes, grouped ones
+    included, then each section's unlinked headers and footers; not review comments), joined by
+    paragraph marks. Headers and footers are read around their fields, whose results Word works
+    out per page and reads differently from one moment to the next. Text boxes come before
+    headers because censoring follows this order, and with a page number in the footer, one undo
+    record that edits a header and then a text box in it can't undo the text box. Within a
+    story, offset i is `Characters[i + 1]`, except that a content control's marks are characters
+    with no text. Scoring runs off the UI thread; anything touching Word runs on it.
     Every range the scan reads text or characters from goes through `Plain` (field results,
     never codes, whatever the view), and its text through `WordText.ToUnicode`: Word reads its
     optional and non-breaking hyphens, note marks and column breaks as control characters,
@@ -29,10 +32,12 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   - `Scanning/PositionMap`: offsets → Word ranges, per story, by paragraph arithmetic. A range
     in another story is made from that story's range (`DocumentScanner.Span`), never
     `doc.Range`, which is always the body. Avoid indexing a whole story's `Characters`; it's slow
-    far into a document. Where a paragraph has to, it steps past content control marks. Beside a field, `Characters`
-    widens a character over the field's hidden marks and code, and a paragraph after a field's
-    end starts with the previous paragraph's mark; `DocumentScanner.Bounds` and `Chunk.Skip`
-    undo both, so censoring a link's text or a TOC entry edits only the letters, not the field.
+    far into a document. Where a paragraph has to, it steps past content control marks. Beside a
+    field, `Characters` widens a character over the field's hidden marks and code, and over a
+    floating shape's anchor before a paragraph's first letter; and a paragraph after a field's
+    end starts with the previous paragraph's mark. `DocumentScanner.Bounds` and `Chunk.Skip`
+    undo these, so censoring a link's text or a TOC entry edits only the letters, not the field,
+    and censoring a name that starts a paragraph doesn't delete the shape anchored there.
   - `Scanning/Verdict`: censor at or above `censor_at`, leave below `leave_below`, ask between
     (from `model/thresholds.json`). `censor_always` names are always censored; a name without
     thresholds, or a missing/invalid file, means ask.
@@ -70,9 +75,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   the Debug COM hook. `make_example.ps1` builds the example document: prose on page one; on page
   two the name in every printed place outside the body text (tables, text boxes, shapes,
   header, footer, notes) plus a review comment, which isn't printed and must be left; on page
-  three the name beside fields (links, a table of contents, a page number);
-  `test_example.ps1` scans it with field codes hidden and shown, and checks each place and that
-  every field and link survives.
+  three the name beside fields and shape anchors (links, a table of contents, a page number, a
+  text box). `test_example.ps1` scans it with field codes hidden and shown, and checks each
+  place, that every field, link and shape survives, selecting each result from the pane, leaving
+  and censoring again from it, and undoing and redoing the scan in one step.
 
 ## Rules
 

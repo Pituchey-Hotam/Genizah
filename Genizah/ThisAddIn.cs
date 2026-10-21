@@ -494,6 +494,27 @@ namespace Genizah
 
         internal bool ReviewResult(int hwnd, int index, bool censor) => windows[hwnd].Control.ReviewResult(index, censor);
 
+        /// <summary>
+        /// Selects a result's row in the pane, and says whether Word then selected exactly that
+        /// result: the same story (each text box is its own), and the same positions in it.
+        /// </summary>
+        internal string SelectResult(int hwnd, int index)
+        {
+            var state = windows[hwnd];
+            state.Control.SelectResult(index);
+            Word.Range result = state.ResultsList[index].Range;
+            Word.Range selected = ((Word.Window)state.Pane.Window).Selection.Range;
+            Func<Word.Range, string> story = range =>
+            {
+                Word.Range all = range.Duplicate;
+                all.Expand(Word.WdUnits.wdStory);
+                return all.Text;
+            };
+            bool same = selected.StoryType == result.StoryType && selected.Start == result.Start
+                && selected.End == result.End && story(selected) == story(result);
+            return string.Join("\t", same, result.StoryType, result.Start, result.End, selected.StoryType, selected.Start, selected.End);
+        }
+
         internal string InspectResultRanges(int hwnd)
         {
             var state = windows[hwnd];

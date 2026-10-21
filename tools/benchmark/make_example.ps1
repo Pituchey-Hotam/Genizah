@@ -9,8 +9,9 @@ The second page puts the name in a table and a table nested in it, a content con
 box, a shape with text, grouped text boxes, the section's header (and a text box in it) and
 footer, a footnote and an endnote: all printed, so a scan must censor every one. It also puts
 the name in a review comment, which isn't printed and must be left alone. The third page puts
-the name beside fields, which censoring must leave whole: at the start of a link's text, in a
-link inside a content control, in a table of contents and the heading right after it; the
+the name beside fields and shape anchors, which censoring must leave whole: at the start of a
+link's text, in a link inside a content control, in a table of contents and the heading right
+after it, and at the start of a paragraph a text box is anchored to (as the header is too); the
 footer has a page number field.
 
 Each case uses havaya, which is always censored, so whether it was censored doesn't depend on
@@ -32,6 +33,7 @@ $name = [string][char]0x05D9 + [char]0x05D4 + [char]0x05D5 + [char]0x05D4
 $wdSectionBreakNextPage = 2
 $wdContentControlRichText = 0
 $wdHeaderFooterPrimary = 1
+$wdWrapSquare = 0
 $wdWrapTopBottom = 4
 $wdRelativeHorizontalPositionColumn = 2
 $wdRelativeVerticalPositionParagraph = 2
@@ -170,10 +172,11 @@ try {
     $end = $doc.Content.End - 1
     $doc.Range($end, $end).InsertAfter("`r" + (@(
         'שדות'
-        'כאן השם צמוד לשדות: בקישור, בקישור שבתוך פקד תוכן, בתוכן העניינים ובכותרת שאחריו. הצנזור משנה רק את האותיות, והשדות נשארים שלמים.'
+        'כאן השם צמוד לשדות ולעוגנים: בקישור, בקישור שבתוך פקד תוכן, בתוכן העניינים ובכותרת שאחריו, ובראש פסקה שתיבת טקסט מעוגנת אליה. הצנזור משנה רק את האותיות, והשדות והתיבות נשארים שלמים.'
         ''
         'פרק א: ' + (Add-Case 'heading after the table of contents' '' ' מחסי')
         'קישור: ' + (Add-Case 'link' '' ' עוז למו')
+        (Add-Case 'start of a paragraph a text box is anchored to' '' ' מעוז חיי, ממי אפחד')
         'פקד תוכן ובו קישור:'
         ''
         'פרק ב: ' + (Add-Case 'table of contents entry' '' ' אורי וישעי')
@@ -186,7 +189,7 @@ try {
     $title.Font.BoldBi = 1
     $title.ParagraphFormat.Alignment = 1
     $title.ParagraphFormat.SpaceAfter = 18
-    foreach ($i in 4, 8) {
+    foreach ($i in 4, 9) {
         $heading = Field $i
         $heading.Style = $wdStyleHeading1
         Format-Hebrew $heading 16
@@ -195,7 +198,14 @@ try {
     # The name starts the link's text, beside its hidden opening mark and code.
     $p = Field 5
     $doc.Hyperlinks.Add($doc.Range($p.Start + 'קישור: '.Length, $p.End - 1), 'https://example.com/') | Out-Null
-    $cc = $doc.ContentControls.Add($wdContentControlRichText, (Field 7))
+    # Word anchors a floating shape before its paragraph's first letter, here the name's.
+    $box = New-TextBox $doc.Shapes (Field 6) 'תיבה מעוגנת' 120
+    $box.WrapFormat.Type = $wdWrapSquare
+    $box.RelativeHorizontalPosition = $wdRelativeHorizontalPositionColumn
+    $box.RelativeVerticalPosition = $wdRelativeVerticalPositionParagraph
+    $box.Left = 0
+    $box.Top = 0
+    $cc = $doc.ContentControls.Add($wdContentControlRichText, (Field 8))
     $cc.Range.Text = 'ראו ' + (Add-Case 'link in a content control' '' ' שפטנו')
     $doc.Hyperlinks.Add($doc.Range($cc.Range.Start + 'ראו '.Length, $cc.Range.End), 'https://example.org/') | Out-Null
     # Last, so it lists both headings; the heading after it starts right after its last mark.
@@ -204,9 +214,9 @@ try {
     # The second section's own header and footer; the first page keeps none.
     $header = $section.Headers.Item($wdHeaderFooterPrimary)
     $header.LinkToPrevious = $false
-    $header.Range.Text = Add-Case 'header' 'לא ינום ולא יישן שומר ישראל. ' ' שמרך'
+    $header.Range.Text = Add-Case 'header, where its text box is anchored' '' ' שמרך. לא ינום ולא יישן שומר ישראל.'
     Format-Hebrew $header.Range 11
-    # At the header's left, opposite its right-to-left text.
+    # At the header's left, opposite its right-to-left text; anchored before the name.
     $box = New-TextBox $header.Shapes $header.Range (Add-Case 'header text box' '' ' צלך על יד ימינך')
     $box.RelativeHorizontalPosition = $wdRelativeHorizontalPositionColumn
     $box.RelativeVerticalPosition = $wdRelativeVerticalPositionParagraph

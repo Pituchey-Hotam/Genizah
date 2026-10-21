@@ -107,6 +107,13 @@ namespace Genizah.Scanning
             {
                 Word.Range range = paragraph.Range;
                 int start = range.Start, end = range.End;
+                // Where the range is part of a story, its first and last paragraphs may reach past it.
+                if (start < all.Start || end > all.End)
+                {
+                    start = Math.Max(start, all.Start);
+                    end = Math.Min(end, all.End);
+                    range = DocumentScanner.Span(all, start, end);
+                }
                 // Whatever lies between paragraphs, such as a table row's end mark.
                 if (start > position && !Add(chunks, story, DocumentScanner.Span(all, position, start), position, start, text, ref textAt))
                     return false;

@@ -41,6 +41,7 @@ namespace Genizah
         internal void RequestScan() => view.RequestScan();
         internal string InspectReviewUi() => view.InspectReviewUi();
         internal bool ReviewResult(int index, bool censor) => view.ReviewResult(index, censor);
+        internal void SelectResult(int index) => view.SelectResult(index);
 #endif
     }
 }
