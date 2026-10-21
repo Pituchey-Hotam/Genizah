@@ -88,6 +88,33 @@ jobs:
         shell: pwsh
         run: ./tools/dist/package.ps1
 
+      # onnxruntime picks its int8 kernels by instruction set, and they give slightly different
+      # logits (ClassifierTests' tolerance), so a run says which CPU it got: the instruction sets
+      # those kernels choose between, from CPUID. Also on the run's summary page.
+      - name: Show the CPU
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name.Trim()
+          $x86 = [System.Runtime.Intrinsics.X86.X86Base]
+          $leaf7 = $x86::CpuId(7, 0)
+          $leaf71 = $x86::CpuId(7, 1)
+          function Bit($register, $bit) { (($register -shr $bit) -band 1) -eq 1 }
+          $sets = [ordered]@{
+            'AVX2' = Bit $leaf7.Item2 5
+            'AVX-VNNI' = Bit $leaf71.Item1 4
+            'AVX512F' = Bit $leaf7.Item2 16
+            'AVX512BW' = Bit $leaf7.Item2 30
+            'AVX512VL' = Bit $leaf7.Item2 31
+            'AVX512-VNNI' = Bit $leaf7.Item3 11
+            'AMX-INT8' = Bit $leaf7.Item4 25
+          }
+          $has = @($sets.Keys | Where-Object { $sets[$_] }) -join ' '
+          "$cpu"
+          "Instruction sets: $has"
+          "CPUID 7.0 ebx={0:x8} ecx={1:x8} edx={2:x8}, 7.1 eax={3:x8}" -f $leaf7.Item2, $leaf7.Item3, $leaf7.Item4, $leaf71.Item1
+          "::notice title=CPU::$cpu ($has)"
+
       # The local parity tests skip: their full-data files (testdata/local/) aren't distributed.
       - name: Test
         run: dotnet test Genizah.Core.Tests -c Release
