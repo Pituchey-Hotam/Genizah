@@ -61,7 +61,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   together; a new graph comes with its own vocabulary, thresholds and vectors.
 - `tools/benchmark/`: times a scan in a running Word (Debug build). Pass several sizes with
   `powershell -Command`, not `-File`. The `test_*.ps1` scripts are Word regression tests through
-  the Debug COM hook.
+  the Debug COM hook. `make_example.ps1` builds the example document: prose on page one, and on
+  page two the name in every printed place outside the body text (tables, text boxes, shapes,
+  header, footer, notes) plus a review comment, which isn't printed and must be left;
+  `test_example.ps1` scans it and checks each place.
 
 ## Rules
 
