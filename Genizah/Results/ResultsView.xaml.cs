@@ -130,6 +130,14 @@ namespace Genizah.Results
             details.DataContext = groupRows.Values.SelectMany(rows => rows).First(row => row.Result == results[index]);
             return censor ? Censor() : Leave();
         }
+
+        /// <summary>Selects the result's row as a click does, expanding its group first.</summary>
+        internal void SelectResult(int index)
+        {
+            var group = groupRows.First(pair => pair.Value.Any(row => row.Result == results[index]));
+            if (!group.Key.IsExpanded) Toggle(group.Key);
+            list.SelectedItem = group.Value.First(row => row.Result == results[index]);
+        }
 #endif
 
         private void Toggle(GroupHeader header)

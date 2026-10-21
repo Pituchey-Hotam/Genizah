@@ -364,9 +364,10 @@ namespace Genizah
                 PositionMap map;
                 using (timings.Measure("build_map"))
                     map = PositionMap.Build(doc, text);
-                // Paragraphs that don't add up to the text: the whole document's Characters, which is slow but sure.
-                Word.Characters chars = map == null ? DocumentScanner.Plain(doc.Content).Characters : null;
+                // The text was just read again and matched; this would take Word reading it differently a third time.
                 if (map == null)
+                    throw new InvalidOperationException("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
+                if (map.StoriesByCharacters > 0)
                     timings.Outcome = "ok, without the position map";
                 var sinceRepaint = System.Diagnostics.Stopwatch.StartNew();
                 // Keep live ranges before any text changes: ranges move with edits.
@@ -379,7 +380,7 @@ namespace Genizah
                     }
                     Word.Range range;
                     using (timings.Measure("to_range"))
-                        range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
+                        range = map.ToRange(s.RawStart, s.RawEnd);
                     Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Candidate.NameId, s.Logit);
                     // Never rewrite text other than what was scored: ask instead.
                     if (verdict == Verdict.Censor && WordText.ToUnicode(range.Text) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
@@ -492,6 +493,27 @@ namespace Genizah
         }
 
         internal bool ReviewResult(int hwnd, int index, bool censor) => windows[hwnd].Control.ReviewResult(index, censor);
+
+        /// <summary>
+        /// Selects a result's row in the pane, and says whether Word then selected exactly that
+        /// result: the same story (each text box is its own), and the same positions in it.
+        /// </summary>
+        internal string SelectResult(int hwnd, int index)
+        {
+            var state = windows[hwnd];
+            state.Control.SelectResult(index);
+            Word.Range result = state.ResultsList[index].Range;
+            Word.Range selected = ((Word.Window)state.Pane.Window).Selection.Range;
+            Func<Word.Range, string> story = range =>
+            {
+                Word.Range all = range.Duplicate;
+                all.Expand(Word.WdUnits.wdStory);
+                return all.Text;
+            };
+            bool same = selected.StoryType == result.StoryType && selected.Start == result.Start
+                && selected.End == result.End && story(selected) == story(result);
+            return string.Join("\t", same, result.StoryType, result.Start, result.End, selected.StoryType, selected.Start, selected.End);
+        }
 
         internal string InspectResultRanges(int hwnd)
         {

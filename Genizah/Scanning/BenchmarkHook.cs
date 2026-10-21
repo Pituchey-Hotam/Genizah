@@ -27,6 +27,7 @@ namespace Genizah.Scanning
         void SetPaneVisible(int hwnd, bool visible, string outputPath);
         void InspectResultRanges(int hwnd, string outputPath);
         void ReviewResult(int hwnd, int index, bool censor, string outputPath);
+        void SelectResult(int hwnd, int index, string outputPath);
         void SeedReview(int hwnd, int start, int end, bool leave, string outputPath);
         void OpenReview(int hwnd, string outputPath);
         void RequestPaneScan(int hwnd, string outputPath);
@@ -76,6 +77,12 @@ namespace Genizah.Scanning
         public void ReviewResult(int hwnd, int index, bool censor, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
         {
             try { WriteOutput(outputPath, Globals.ThisAddIn.ReviewResult(hwnd, index, censor).ToString()); }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
+
+        public void SelectResult(int hwnd, int index, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try { WriteOutput(outputPath, Globals.ThisAddIn.SelectResult(hwnd, index)); }
             catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
         }, null);
 
