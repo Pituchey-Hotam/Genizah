@@ -27,11 +27,22 @@ namespace Genizah.Core
         /// </returns>
         public static string Apply(string raw, string baseForm, string replacement)
         {
+            Edit(raw, baseForm, replacement, out int start, out int end, out string insert);
+            return raw.Substring(0, start) + insert + raw.Substring(end);
+        }
+
+        /// <summary>
+        /// The edit <see cref="Apply"/> makes: raw[<paramref name="start"/>, <paramref name="end"/>)
+        /// becomes <paramref name="insert"/>. Found on one text, it can be made on another whose
+        /// characters line up one for one, such as Word's text and its Unicode.
+        /// </summary>
+        public static void Edit(string raw, string baseForm, string replacement, out int start, out int end, out string insert)
+        {
             if (raw == null) throw new ArgumentNullException(nameof(raw));
             if (string.IsNullOrEmpty(baseForm)) throw new ArgumentException("empty base form", nameof(baseForm));
             if (replacement == null) throw new ArgumentNullException(nameof(replacement));
 
-            // The edit: baseForm[keep, editEnd) becomes insert.
+            // The edit: baseForm[keep, editEnd) becomes replacement[keep, replacement.Length - tail).
             int keep = 0;
             while (keep < baseForm.Length && keep < replacement.Length && baseForm[keep] == replacement[keep])
                 keep++;
@@ -40,35 +51,40 @@ namespace Genizah.Core
                    && baseForm[baseForm.Length - 1 - tail] == replacement[replacement.Length - 1 - tail])
                 tail++;
             int editEnd = baseForm.Length - tail;
-            string insert = replacement.Substring(keep, replacement.Length - tail - keep);
 
             var norm = TextNormalizer.NormalizeWithOffsets(raw);
             string text = norm.Text;
             int nameStart = NameStart(text, baseForm);
             if (nameStart < 0)
-                return replacement;
+            {
+                start = 0;
+                end = raw.Length;
+                insert = replacement;
+                return;
+            }
 
             int[] at = Align(text, nameStart, baseForm, editEnd);
-            int rawStart, rawEnd;
             if (at == null)
             {
-                norm.ToRaw(nameStart, nameStart + 1, out rawStart, out _);
-                return raw.Substring(0, rawStart) + replacement;
+                norm.ToRaw(nameStart, nameStart + 1, out start, out _);
+                end = raw.Length;
+                insert = replacement;
+                return;
             }
+            insert = replacement.Substring(keep, replacement.Length - tail - keep);
             if (editEnd > keep)
-                norm.ToRaw(at[keep], at[editEnd - 1] + 1, out rawStart, out rawEnd);
+                norm.ToRaw(at[keep], at[editEnd - 1] + 1, out start, out end);
             else if (keep == 0)
             {
-                norm.ToRaw(nameStart, nameStart + 1, out rawStart, out _);
-                rawEnd = rawStart;
+                norm.ToRaw(nameStart, nameStart + 1, out start, out _);
+                end = start;
             }
             else
             {
                 // A pure insertion goes after the kept letter's nikud (ש-די, not שׁ-ַדי).
-                norm.ToRaw(at[keep - 1], at[keep - 1] + 1, out _, out rawEnd);
-                rawStart = rawEnd;
+                norm.ToRaw(at[keep - 1], at[keep - 1] + 1, out _, out end);
+                start = end;
             }
-            return raw.Substring(0, rawStart) + insert + raw.Substring(rawEnd);
         }
 
         /// <summary>Where the name's first letter is, past any proclitics; -1 if nowhere.</summary>

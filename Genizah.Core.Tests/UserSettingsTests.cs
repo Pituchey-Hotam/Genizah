@@ -23,13 +23,14 @@ namespace Genizah.Core.Tests
             var settings = UserSettings.Load(File_);
             Assert.True(settings.CheckForUpdates);
             Assert.True(settings.CheckBeforePrinting);
+            Assert.False(settings.AboutShown);
             Assert.Empty(settings.Replacements);
         }
 
         [Fact]
         public void SavedSettingsLoadBack()
         {
-            var settings = new UserSettings { CheckForUpdates = false, CheckBeforePrinting = false };
+            var settings = new UserSettings { CheckForUpdates = false, CheckBeforePrinting = false, AboutShown = true };
             settings.Replacements["havaya"] = "ד'";
             settings.Save(File_);
             settings.Replacements["el"] = "קל";
@@ -38,6 +39,7 @@ namespace Genizah.Core.Tests
             var loaded = UserSettings.Load(File_);
             Assert.False(loaded.CheckForUpdates);
             Assert.False(loaded.CheckBeforePrinting);
+            Assert.True(loaded.AboutShown);
             Assert.Equal("ד'", loaded.Replacements["havaya"]);
             Assert.Equal("קל", loaded.Replacements["el"]);
             Assert.False(File.Exists(File_ + ".tmp"));
@@ -62,6 +64,7 @@ namespace Genizah.Core.Tests
             var settings = UserSettings.Load(File_);
             Assert.True(settings.CheckForUpdates);
             Assert.True(settings.CheckBeforePrinting);
+            Assert.False(settings.AboutShown);
             Assert.Equal("קל", settings.Replacements["el"]);
 
             File.WriteAllText(File_, "{\"check_for_updates\":false}");

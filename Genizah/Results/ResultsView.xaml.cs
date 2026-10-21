@@ -122,13 +122,22 @@ namespace Genizah.Results
             return string.Join("|", progressPanel.Visibility == Visibility.Visible ? "progress" : "review",
                 scanButton.Content, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(summary.Text)),
                 selected == null ? -1 : results.IndexOf(selected.Result),
-                string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)));
+                string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)),
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(progressStage.Text)));
         }
 
         internal bool ReviewResult(int index, bool censor)
         {
             details.DataContext = groupRows.Values.SelectMany(rows => rows).First(row => row.Result == results[index]);
             return censor ? Censor() : Leave();
+        }
+
+        /// <summary>Selects the result's row as a click does, expanding its group first.</summary>
+        internal void SelectResult(int index)
+        {
+            var group = groupRows.First(pair => pair.Value.Any(row => row.Result == results[index]));
+            if (!group.Key.IsExpanded) Toggle(group.Key);
+            list.SelectedItem = group.Value.First(row => row.Result == results[index]);
         }
 #endif
 

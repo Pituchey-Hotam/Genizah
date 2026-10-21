@@ -2,8 +2,6 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Diagnostics;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah.Scanning
@@ -27,9 +25,9 @@ namespace Genizah.Scanning
         void StartWindowScan(int hwnd, string timingsPath);
         void InspectWindows(string outputPath);
         void SetPaneVisible(int hwnd, bool visible, string outputPath);
-        void ProbeUndoEvents(string command, int hwnd, string outputPath);
         void InspectResultRanges(int hwnd, string outputPath);
         void ReviewResult(int hwnd, int index, bool censor, string outputPath);
+        void SelectResult(int hwnd, int index, string outputPath);
         void SeedReview(int hwnd, int start, int end, bool leave, string outputPath);
         void OpenReview(int hwnd, string outputPath);
         void RequestPaneScan(int hwnd, string outputPath);
@@ -41,8 +39,6 @@ namespace Genizah.Scanning
     [ClassInterface(ClassInterfaceType.None)]
     public class BenchmarkHook : IBenchmarkHook
     {
-        private UndoEventProbe eventProbe;
-
         public void OpenReview(int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
         {
             try
@@ -84,76 +80,17 @@ namespace Genizah.Scanning
             catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
         }, null);
 
+        public void SelectResult(int hwnd, int index, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
+        {
+            try { WriteOutput(outputPath, Globals.ThisAddIn.SelectResult(hwnd, index)); }
+            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
+        }, null);
+
         public void InspectResultRanges(int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
         {
             try { WriteOutput(outputPath, Globals.ThisAddIn.InspectResultRanges(hwnd)); }
             catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
         }, null);
-
-        public void ProbeUndoEvents(string command, int hwnd, string outputPath) => Globals.ThisAddIn.UiContext.Post(_ =>
-        {
-            try
-            {
-                if (command == "start")
-                {
-                    eventProbe?.Dispose();
-                    eventProbe = new UndoEventProbe(Globals.ThisAddIn.Application, hwnd);
-                }
-                else if (command == "clear") eventProbe.Clear();
-                else if (command == "stop")
-                {
-                    eventProbe?.Dispose();
-                    eventProbe = null;
-                }
-                WriteOutput(outputPath, eventProbe == null ? "stopped" : eventProbe.Capture());
-            }
-            catch (Exception ex) { WriteOutput(outputPath, "ERROR: " + ex); }
-        }, null);
-
-        // Opt-in, Debug-only instrumentation. No event hooks exist until the probe starts.
-        private sealed class UndoEventProbe : IDisposable
-        {
-            private readonly Word.Application application;
-            private readonly Word.Window window;
-            private readonly List<string> events = new List<string>();
-            private readonly Stopwatch clock = Stopwatch.StartNew();
-
-            public UndoEventProbe(Word.Application application, int hwnd)
-            {
-                this.application = application;
-                foreach (Word.Window candidate in application.Windows)
-                    if (candidate.Hwnd == hwnd) { window = candidate; break; }
-                if (window == null) throw new ArgumentException("Window not found");
-                application.WindowSelectionChange += SelectionChanged;
-                application.DocumentChange += DocumentChanged;
-                application.WindowActivate += Activated;
-                application.WindowDeactivate += Deactivated;
-                application.WindowSize += Resized;
-            }
-
-            public void Clear() { events.Clear(); clock.Restart(); }
-            private void Record(string name) => events.Add(clock.ElapsedMilliseconds + "\t" + name);
-            private void SelectionChanged(Word.Selection selection) => Record("WindowSelectionChange");
-            private void DocumentChanged() => Record("DocumentChange");
-            private void Activated(Word.Document doc, Word.Window changed) => Record("WindowActivate");
-            private void Deactivated(Word.Document doc, Word.Window changed) => Record("WindowDeactivate");
-            private void Resized(Word.Document doc, Word.Window changed) => Record("WindowSize");
-
-            public string Capture()
-            {
-                Word.Selection selection = window.Selection;
-                return "selection\t" + selection.Start + "\t" + selection.End + "\n" + string.Join("\n", events);
-            }
-
-            public void Dispose()
-            {
-                application.WindowSelectionChange -= SelectionChanged;
-                application.DocumentChange -= DocumentChanged;
-                application.WindowActivate -= Activated;
-                application.WindowDeactivate -= Deactivated;
-                application.WindowSize -= Resized;
-            }
-        }
 
         public void StartWindowScan(int hwnd, string timingsPath)
         {

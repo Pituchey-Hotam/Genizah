@@ -10,8 +10,9 @@
   - changed ones are downloaded;
   - every file is checked against the release's signed manifests.
 
-  It then points Word at the new folder for the next start. A failure changes nothing. The settings
-  dialog can turn updates off.
+  It then points Word at the new folder for the next start. A failure changes nothing and isn't
+  shown; `update.log` records it. The settings dialog can turn updates off, and shows the running
+  version, a version installed for the next start, and the last check's time and result.
 
 Not ClickOnce: VSTO can't update a ClickOnce install from anywhere but where it was installed from,
 so an offline install could never update from the web.
@@ -24,6 +25,7 @@ so an offline install could never update from the web.
   versions\<version>.partial\   being built; renamed when complete
   versions\update.lock  one updater at a time
   settings.json
+  update.log            each check's outcome, the only trace of a failed update
 ```
 
 Registry (HKCU), written by both `tools/dist/setup.iss` and `Genizah/Registration.cs`:
@@ -82,14 +84,28 @@ must first ship in an update signed with the old one.
 
 ## Cutting a release
 
-A release is a PR into `master`:
+A release is a PR from `develop` into `master`. Feature and fix PRs land on `develop`;
+`master` receives only release merges.
 
-1. Bump `VERSION`, the only place the version lives.
+1. Bump `VERSION`, the only place the version lives, in a PR into `develop`. All release changes,
+   including the bump, must land on `develop` before the release PR.
 2. If the model graph changed, publish it first (below).
-3. Open the PR. CI builds, tests, packages, builds the installer, and checks that `VERSION` is
-   new.
-4. Merge. CI uploads `v<VERSION>` as a draft, checks the uploaded assets against the build, then
+3. Test the candidate in Word, then open the PR from `develop` into `master`. CI builds, tests,
+   packages, builds the installer, and checks that `VERSION` is new. Recheck the candidate if
+   `develop` changes before merging.
+4. Merge using **Create a merge commit**, never squash or rebase. CI uploads `v<VERSION>` as a
+   draft, checks the uploaded assets against the build, then
    publishes it as latest. If the check fails, the release stays a draft.
+
+Do not routinely merge `master` back into `develop`. Its release merge commits need not be on
+`develop`; GitHub may report that `develop` is behind without it missing any release changes.
+The published release and its `v<VERSION>` tag identify what shipped; a merge to `master` alone
+does not mean publishing succeeded.
+
+Use a temporary `release/<VERSION>` branch only when a candidate must stay fixed while new work
+lands on `develop`. Any fixes or version bumps on that branch must also reach `develop`.
+For a patch to an older release, branch from its release tag and carry the fix into `develop`;
+these exceptional changes require synchronization, unlike ordinary release merge commits.
 
 ## What a release holds
 

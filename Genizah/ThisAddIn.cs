@@ -36,14 +36,14 @@ namespace Genizah
         private const string Title = "צנזור גניזה";
         // Word's undo record and screen updating are application-wide: serialize scans.
         private readonly SemaphoreSlim scanGate = new SemaphoreSlim(1, 1);
-        internal SynchronizationContext UiContext { get; private set; }
+        internal UiSynchronizationContext UiContext { get; private set; }
 
         /// <summary>Set once an update is installed for the next start: shown above the session's scan results.</summary>
         private string updateNotice;
 
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
-            UiContext = new WindowsFormsSynchronizationContext();
+            UiContext = new UiSynchronizationContext();
             Application.WindowActivate += Application_WindowActivate;
             Application.WindowSelectionChange += Application_WindowSelectionChange;
             Application.DocumentChange += RemoveClosedWindows;
@@ -64,6 +64,8 @@ namespace Genizah
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
         {
             shuttingDown = true;
+            // A scan still loading the model or scoring stops where it is, as does anything else posted.
+            UiContext.Close();
             Application.WindowSelectionChange -= Application_WindowSelectionChange;
             foreach (var state in windows.Values.ToList()) RemoveWindow(state);
         }
@@ -257,9 +259,10 @@ namespace Genizah
             state.HasCompletedReview = false;
             bool entered = false;
             var timings = new ScanTimings();
-            // Brings the awaits below back to Word's UI thread, where the document may be touched.
-            if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
-                SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+            // Brings the awaits below back to Word's UI thread, where the document may be touched,
+            // and nowhere once the add-in shuts down. A click in the pane arrives under WPF's context.
+            if (SynchronizationContext.Current != UiContext)
+                SynchronizationContext.SetSynchronizationContext(UiContext);
             try
             {
                 state.Pane.Visible = true;
@@ -364,9 +367,10 @@ namespace Genizah
                 PositionMap map;
                 using (timings.Measure("build_map"))
                     map = PositionMap.Build(doc, text);
-                // Paragraphs that don't add up to the text: the whole document's Characters, which is slow but sure.
-                Word.Characters chars = map == null ? doc.Content.Characters : null;
+                // The text was just read again and matched; this would take Word reading it differently a third time.
                 if (map == null)
+                    throw new InvalidOperationException("המסמך השתנה במהלך הסריקה. יש לסרוק שוב.");
+                if (map.StoriesByCharacters > 0)
                     timings.Outcome = "ok, without the position map";
                 var sinceRepaint = System.Diagnostics.Stopwatch.StartNew();
                 // Keep live ranges before any text changes: ranges move with edits.
@@ -379,10 +383,10 @@ namespace Genizah
                     }
                     Word.Range range;
                     using (timings.Measure("to_range"))
-                        range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
+                        range = map.ToRange(s.RawStart, s.RawEnd);
                     Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Candidate.NameId, s.Logit);
                     // Never rewrite text other than what was scored: ask instead.
-                    if (verdict == Verdict.Censor && range.Text != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                    if (verdict == Verdict.Censor && WordText.ToUnicode(range.Text) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         verdict = Verdict.Ask;
                     DocumentScanner.Context(text, s.RawStart, s.RawEnd, 30, out string before, out string after);
                     SearchResult result;
@@ -390,7 +394,7 @@ namespace Genizah
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
                                                   thresholds?.Probability(s.Logit), verdict, before, after);
                     state.ResultsList.Add(result);
-                    if (result.OriginalText != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                    if (WordText.ToUnicode(result.OriginalText) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
                 }
                 await ShowProgress(state, timings, Stage3, 0, state.ResultsList.Count);
@@ -492,6 +496,27 @@ namespace Genizah
         }
 
         internal bool ReviewResult(int hwnd, int index, bool censor) => windows[hwnd].Control.ReviewResult(index, censor);
+
+        /// <summary>
+        /// Selects a result's row in the pane, and says whether Word then selected exactly that
+        /// result: the same story (each text box is its own), and the same positions in it.
+        /// </summary>
+        internal string SelectResult(int hwnd, int index)
+        {
+            var state = windows[hwnd];
+            state.Control.SelectResult(index);
+            Word.Range result = state.ResultsList[index].Range;
+            Word.Range selected = ((Word.Window)state.Pane.Window).Selection.Range;
+            Func<Word.Range, string> story = range =>
+            {
+                Word.Range all = range.Duplicate;
+                all.Expand(Word.WdUnits.wdStory);
+                return all.Text;
+            };
+            bool same = selected.StoryType == result.StoryType && selected.Start == result.Start
+                && selected.End == result.End && story(selected) == story(result);
+            return string.Join("\t", same, result.StoryType, result.Start, result.End, selected.StoryType, selected.Start, selected.End);
+        }
 
         internal string InspectResultRanges(int hwnd)
         {

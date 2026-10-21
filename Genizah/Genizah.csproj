@@ -70,6 +70,17 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <!-- The license and notices travel with every install. -->
+    <Content Include="..\LICENSE;..\NOTICE">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\licenses\*.txt">
+      <Link>licenses\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup>
     <!--
       OfficeApplication
@@ -199,6 +210,9 @@
     <Compile Include="CensorControls.Designer.cs">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </Compile>
+    <Compile Include="AboutDialog.xaml.cs">
+      <DependentUpon>AboutDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="CensorSettingsDialog.xaml.cs">
       <DependentUpon>CensorSettingsDialog.xaml</DependentUpon>
     </Compile>
@@ -221,6 +235,7 @@
     <Compile Include="Scanning\PositionMap.cs" />
     <Compile Include="Scanning\ScanTimings.cs" />
     <Compile Include="Scanning\Verdict.cs" />
+    <Compile Include="UiSynchronizationContext.cs" />
     <Compile Include="Updater.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
@@ -228,6 +243,10 @@
     <EmbeddedResource Include="CensorControls.resx">
       <DependentUpon>CensorControls.cs</DependentUpon>
     </EmbeddedResource>
+    <Page Include="AboutDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="CensorSettingsDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

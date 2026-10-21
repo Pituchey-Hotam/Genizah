@@ -1,10 +1,12 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Genizah.Core;
 
 namespace Genizah
 {
@@ -23,6 +25,25 @@ namespace Genizah
             checkBeforePrinting.IsChecked = AddInSettings.Current.CheckBeforePrinting;
             checkBeforePrinting.Loaded += (s, e) => UnmirrorCheckMark(checkBeforePrinting);
             checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
+            updateStatus.Text = UpdateStatus();
+            updateStatus.ToolTip = "פרטים: " + Updater.LogPath;
+        }
+
+        /// <summary>The running version, and what the last session's update check found.</summary>
+        private static string UpdateStatus()
+        {
+            Version running = Updater.RunningVersion;
+            if (!Updater.IsInstalled) return $"גרסה {running} (גרסת פיתוח, אינה מתעדכנת).";
+            Version next = Updater.NextStartVersion;
+            if (next != null) return $"גרסה {running}. גרסה {next} הותקנה ותפעל מההפעלה הבאה של Word.";
+
+            UpdateCheck last = UpdateLog.LastCheck(Updater.LogPath);
+            if (last == null) return $"גרסה {running}. עדיין לא נבדקו עדכונים.";
+            string when = last.Time.ToString("d.M.yyyy HH:mm", CultureInfo.InvariantCulture);
+            string found = last.Outcome == UpdateOutcome.Failed
+                ? "הבדיקה נכשלה, ותתבצע שוב בהפעלה הבאה של Word."
+                : "זו הגרסה העדכנית.";
+            return $"גרסה {running}. בדיקה אחרונה: {when}. {found}";
         }
 
         /// <summary>
@@ -73,6 +94,11 @@ namespace Genizah
                                 MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign);
             }
             DialogResult = true;
+        }
+
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            new AboutDialog { Owner = this }.ShowDialog();
         }
 
         private void Defaults_Click(object sender, RoutedEventArgs e)
