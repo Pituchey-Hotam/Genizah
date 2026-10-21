@@ -51,11 +51,8 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
 - `model/`: `vocab.txt`, `manifest.json`, `thresholds.json` and the fetched `.onnx` belong
   together; a new graph comes with its own vocabulary, thresholds and vectors.
 - `tools/benchmark/`: times a scan in a running Word (Debug build). Pass several sizes with
-  `powershell -Command`, not `-File`.
-  `probe_undo_events.ps1` measures opt-in Debug undo/redo event coverage; results and limits
-  are in `docs/UNDO_EVENTS.md`.
-  `probe_live_ranges.ps1` checks live range boundaries through individual and grouped undo/redo;
-  see `docs/LIVE_RANGE_UNDO.md` before relying on ranges after whole-scan undo.
+  `powershell -Command`, not `-File`. The `test_*.ps1` scripts are Word regression tests through
+  the Debug COM hook.
 
 ## Rules
 
