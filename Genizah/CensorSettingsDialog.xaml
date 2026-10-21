@@ -80,6 +80,8 @@
                     <CheckBox x:Name="checkForUpdates" FontSize="13" VerticalContentAlignment="Center"
                               Content="עדכן את גניזה אוטומטית"
                               ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
+                    <TextBlock x:Name="updateStatus" Foreground="{StaticResource SecondaryText}"
+                               Margin="20,4,0,0" MaxWidth="320" HorizontalAlignment="Left" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
         </StackPanel>
