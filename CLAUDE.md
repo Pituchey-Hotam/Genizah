@@ -16,8 +16,17 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     AppDomain otherwise offers only SSL 3/TLS 1.0, which GitHub refuses.
   - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
     `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
+    Every range the scan reads text or characters from goes through `Plain` (field results,
+    never codes, whatever the view), and its text through `WordText.ToUnicode`: Word reads its
+    optional and non-breaking hyphens, note marks and column breaks as control characters,
+    which are mapped one for one to Unicode before the pipeline. Censoring writes hyphens as
+    Word's own non-breaking hyphen (`WordText.ForWord`); U+2011 falls back to another font in
+    most Hebrew fonts.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
-    whole document's `Characters`; it's slow far into a document.
+    whole document's `Characters`; it's slow far into a document. Beside a field, `Characters`
+    widens a character over the field's hidden marks and code, and a paragraph after a field's
+    end starts with the previous paragraph's mark; `DocumentScanner.Bounds` and `Chunk.Skip`
+    undo both, so censoring a link's text or a TOC entry edits only the letters, not the field.
   - `Scanning/Verdict`: censor at or above `censor_at`, leave below `leave_below`, ask between
     (from `model/thresholds.json`). `censor_always` names are always censored; a name without
     thresholds, or a missing/invalid file, means ask.
@@ -42,7 +51,7 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   a port of the Python input pipeline the model was trained with, which isn't in this repo; the
   test vectors stand in for it. `TextNormalizer` → `NameFinder` → `WordPieceTokenizer`/
   `WindowEncoder` → `NameClassifier`. Outside the pipeline:
-  `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `Quote`,
+  `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `WordText`, `Quote`,
   `NameThresholds`, `ModelManifest`. For updates: `Manifests` (reads a version's signed `.vsto`
   and `.dll.manifest` after checking the signer's key; ClickOnce's algorithm names need
   registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`, `UpdateLog` (one tab-separated line per check).

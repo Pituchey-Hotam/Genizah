@@ -119,7 +119,7 @@ namespace Genizah.Results
             return (p * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
         }
 
-        public string ReplacementText => "יוחלף ב: " + Result.CensoredText;
+        public string ReplacementText => "יוחלף ב: " + WordText.ToUnicode(Result.CensoredText);
 
         public event PropertyChangedEventHandler PropertyChanged;
 

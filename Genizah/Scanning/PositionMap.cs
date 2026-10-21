@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Genizah.Core;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah.Scanning
@@ -21,6 +22,11 @@ namespace Genizah.Scanning
             /// <summary>Its text is exactly as long as its positions, one for one.</summary>
             public bool Linear;
             public Word.Characters Characters;
+            /// <summary>
+            /// How many of Characters come before the chunk: after a field's closing mark, the
+            /// next paragraph's Characters starts with the previous paragraph's mark.
+            /// </summary>
+            public int Skip;
         }
 
         private readonly Word.Document doc;
@@ -59,7 +65,7 @@ namespace Genizah.Scanning
 
         private static bool Add(List<Chunk> chunks, Word.Range range, int start, int end, string text, ref int textAt)
         {
-            string chunkText = range.Text?.Replace("\r\a", "\r") ?? "";
+            string chunkText = WordText.ToUnicode(DocumentScanner.Plain(range).Text?.Replace("\r\a", "\r") ?? "");
             if (textAt + chunkText.Length > text.Length || string.CompareOrdinal(text, textAt, chunkText, 0, chunkText.Length) != 0)
                 return false;
             if (chunkText.Length == 0)
@@ -81,7 +87,7 @@ namespace Genizah.Scanning
         {
             CharacterAt(rawStart, out int start, out _);
             CharacterAt(rawEnd - 1, out _, out int end);
-            return doc.Range(start, end);
+            return DocumentScanner.Plain(doc.Range(start, end));
         }
 
         private void CharacterAt(int offset, out int start, out int end)
@@ -95,10 +101,12 @@ namespace Genizah.Scanning
                 return;
             }
             if (chunk.Characters == null)
-                chunk.Characters = doc.Range(chunk.Start, chunk.End).Characters;
-            Word.Range character = chunk.Characters[local + 1];
-            start = character.Start;
-            end = character.End;
+            {
+                chunk.Characters = DocumentScanner.Plain(doc.Range(chunk.Start, chunk.End)).Characters;
+                while (chunk.Skip < chunk.Characters.Count && chunk.Characters[chunk.Skip + 1].Start < chunk.Start)
+                    chunk.Skip++;
+            }
+            DocumentScanner.Bounds(doc, chunk.Characters[chunk.Skip + local + 1], out start, out end);
         }
 
         private Chunk Find(int offset)
