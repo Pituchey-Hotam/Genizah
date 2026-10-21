@@ -122,7 +122,8 @@ namespace Genizah.Results
             return string.Join("|", progressPanel.Visibility == Visibility.Visible ? "progress" : "review",
                 scanButton.Content, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(summary.Text)),
                 selected == null ? -1 : results.IndexOf(selected.Result),
-                string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)));
+                string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)),
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(progressStage.Text)));
         }
 
         internal bool ReviewResult(int index, bool censor)

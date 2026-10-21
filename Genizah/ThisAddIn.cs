@@ -36,14 +36,14 @@ namespace Genizah
         private const string Title = "צנזור גניזה";
         // Word's undo record and screen updating are application-wide: serialize scans.
         private readonly SemaphoreSlim scanGate = new SemaphoreSlim(1, 1);
-        internal SynchronizationContext UiContext { get; private set; }
+        internal UiSynchronizationContext UiContext { get; private set; }
 
         /// <summary>Set once an update is installed for the next start: shown above the session's scan results.</summary>
         private string updateNotice;
 
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
-            UiContext = new WindowsFormsSynchronizationContext();
+            UiContext = new UiSynchronizationContext();
             Application.WindowActivate += Application_WindowActivate;
             Application.WindowSelectionChange += Application_WindowSelectionChange;
             Application.DocumentChange += RemoveClosedWindows;
@@ -64,6 +64,8 @@ namespace Genizah
         private void ThisAddIn_Shutdown(object sender, EventArgs e)
         {
             shuttingDown = true;
+            // A scan still loading the model or scoring stops where it is, as does anything else posted.
+            UiContext.Close();
             Application.WindowSelectionChange -= Application_WindowSelectionChange;
             foreach (var state in windows.Values.ToList()) RemoveWindow(state);
         }
@@ -257,9 +259,10 @@ namespace Genizah
             state.HasCompletedReview = false;
             bool entered = false;
             var timings = new ScanTimings();
-            // Brings the awaits below back to Word's UI thread, where the document may be touched.
-            if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
-                SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+            // Brings the awaits below back to Word's UI thread, where the document may be touched,
+            // and nowhere once the add-in shuts down. A click in the pane arrives under WPF's context.
+            if (SynchronizationContext.Current != UiContext)
+                SynchronizationContext.SetSynchronizationContext(UiContext);
             try
             {
                 state.Pane.Visible = true;
