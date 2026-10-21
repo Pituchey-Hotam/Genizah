@@ -23,7 +23,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     Word's own non-breaking hyphen (`WordText.ForWord`); U+2011 falls back to another font in
     most Hebrew fonts.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
-    whole document's `Characters`; it's slow far into a document.
+    whole document's `Characters`; it's slow far into a document. Beside a field, `Characters`
+    widens a character over the field's hidden marks and code, and a paragraph after a field's
+    end starts with the previous paragraph's mark; `DocumentScanner.Bounds` and `Chunk.Skip`
+    undo both, so censoring a link's text or a TOC entry edits only the letters, not the field.
   - `Scanning/Verdict`: censor at or above `censor_at`, leave below `leave_below`, ask between
     (from `model/thresholds.json`). `censor_always` names are always censored; a name without
     thresholds, or a missing/invalid file, means ask.

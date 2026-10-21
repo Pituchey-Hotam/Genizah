@@ -22,6 +22,11 @@ namespace Genizah.Scanning
             /// <summary>Its text is exactly as long as its positions, one for one.</summary>
             public bool Linear;
             public Word.Characters Characters;
+            /// <summary>
+            /// How many of Characters come before the chunk: after a field's closing mark, the
+            /// next paragraph's Characters starts with the previous paragraph's mark.
+            /// </summary>
+            public int Skip;
         }
 
         private readonly Word.Document doc;
@@ -96,10 +101,12 @@ namespace Genizah.Scanning
                 return;
             }
             if (chunk.Characters == null)
+            {
                 chunk.Characters = DocumentScanner.Plain(doc.Range(chunk.Start, chunk.End)).Characters;
-            Word.Range character = chunk.Characters[local + 1];
-            start = character.Start;
-            end = character.End;
+                while (chunk.Skip < chunk.Characters.Count && chunk.Characters[chunk.Skip + 1].Start < chunk.Start)
+                    chunk.Skip++;
+            }
+            DocumentScanner.Bounds(doc, chunk.Characters[chunk.Skip + local + 1], out start, out end);
         }
 
         private Chunk Find(int offset)
