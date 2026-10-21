@@ -365,7 +365,7 @@ namespace Genizah
                 using (timings.Measure("build_map"))
                     map = PositionMap.Build(doc, text);
                 // Paragraphs that don't add up to the text: the whole document's Characters, which is slow but sure.
-                Word.Characters chars = map == null ? doc.Content.Characters : null;
+                Word.Characters chars = map == null ? DocumentScanner.Plain(doc.Content).Characters : null;
                 if (map == null)
                     timings.Outcome = "ok, without the position map";
                 var sinceRepaint = System.Diagnostics.Stopwatch.StartNew();
@@ -382,7 +382,7 @@ namespace Genizah
                         range = map != null ? map.ToRange(s.RawStart, s.RawEnd) : DocumentScanner.ToRange(doc, chars, s.RawStart, s.RawEnd);
                     Verdict verdict = thresholds == null ? Verdict.Ask : thresholds.Decide(s.Candidate.NameId, s.Logit);
                     // Never rewrite text other than what was scored: ask instead.
-                    if (verdict == Verdict.Censor && range.Text != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                    if (verdict == Verdict.Censor && WordText.ToUnicode(range.Text) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         verdict = Verdict.Ask;
                     DocumentScanner.Context(text, s.RawStart, s.RawEnd, 30, out string before, out string after);
                     SearchResult result;
@@ -390,7 +390,7 @@ namespace Genizah
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
                                                   thresholds?.Probability(s.Logit), verdict, before, after);
                     state.ResultsList.Add(result);
-                    if (result.OriginalText != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
+                    if (WordText.ToUnicode(result.OriginalText) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
                 }
                 await ShowProgress(state, timings, Stage3, 0, state.ResultsList.Count);

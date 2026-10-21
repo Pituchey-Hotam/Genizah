@@ -13,14 +13,26 @@ namespace Genizah.Scanning
     internal static class DocumentScanner
     {
         /// <summary>
-        /// The main story's text, with each offset i matching Characters[i + 1]. Word hides its
-        /// formatting and field characters from Range.Text, so Range.Start/End offsets don't match
-        /// it, but Characters does. The one exception is the end-of-cell mark: one character,
-        /// two UTF-16 units ("\r\a").
+        /// The main story's text, with each offset i matching Characters[i + 1] of a
+        /// <see cref="Plain"/> range, and Word's own characters in Unicode (<see cref="WordText"/>).
+        /// Word hides its formatting and field characters from Range.Text, so Range.Start/End
+        /// offsets don't match it, but Characters does. The one exception is the end-of-cell mark:
+        /// one character, two UTF-16 units ("\r\a").
         /// </summary>
         public static string ReadText(Word.Document doc)
         {
-            return doc.Content.Text.Replace("\r\a", "\r");
+            return WordText.ToUnicode(Plain(doc.Content).Text.Replace("\r\a", "\r"));
+        }
+
+        /// <summary>
+        /// <paramref name="range"/>, set to read fields as their results. By default Range.Text
+        /// and Characters follow the view, and read field codes while the user shows them (Alt+F9).
+        /// Every range whose text or characters the scan reads needs this, and keeps it in Duplicate.
+        /// </summary>
+        public static Word.Range Plain(Word.Range range)
+        {
+            range.TextRetrievalMode.IncludeFieldCodes = false;
+            return range;
         }
 
         /// <summary>Every candidate in <paramref name="text"/>, scored. Runs off the UI thread.</summary>
@@ -40,7 +52,7 @@ namespace Genizah.Scanning
         /// <summary>The Word range of [rawStart, rawEnd) in <see cref="ReadText"/>'s offsets.</summary>
         public static Word.Range ToRange(Word.Document doc, Word.Characters chars, int rawStart, int rawEnd)
         {
-            return doc.Range(chars[rawStart + 1].Start, chars[rawEnd].End);
+            return Plain(doc.Range(chars[rawStart + 1].Start, chars[rawEnd].End));
         }
 
         /// <summary>

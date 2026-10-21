@@ -51,7 +51,10 @@ namespace Genizah.Results
             State = verdict == Verdict.Leave ? ResultState.Left : ResultState.Pending;
             uncensoredState = State;
             OriginalText = range.Text;
-            CensoredText = NameCensor.Apply(OriginalText, name.BaseForm, name.getSelectedReplacement());
+            // Found on the Unicode text, which lines up one for one, and made on Word's.
+            NameCensor.Edit(WordText.ToUnicode(OriginalText), name.BaseForm, name.getSelectedReplacement(),
+                            out int start, out int end, out string insert);
+            CensoredText = OriginalText.Substring(0, start) + WordText.ForWord(insert) + OriginalText.Substring(end);
             ContextBefore = contextBefore;
             ContextAfter = contextAfter;
         }

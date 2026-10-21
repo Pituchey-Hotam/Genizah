@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Genizah.Core;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace Genizah.Scanning
@@ -59,7 +60,7 @@ namespace Genizah.Scanning
 
         private static bool Add(List<Chunk> chunks, Word.Range range, int start, int end, string text, ref int textAt)
         {
-            string chunkText = range.Text?.Replace("\r\a", "\r") ?? "";
+            string chunkText = WordText.ToUnicode(DocumentScanner.Plain(range).Text?.Replace("\r\a", "\r") ?? "");
             if (textAt + chunkText.Length > text.Length || string.CompareOrdinal(text, textAt, chunkText, 0, chunkText.Length) != 0)
                 return false;
             if (chunkText.Length == 0)
@@ -81,7 +82,7 @@ namespace Genizah.Scanning
         {
             CharacterAt(rawStart, out int start, out _);
             CharacterAt(rawEnd - 1, out _, out int end);
-            return doc.Range(start, end);
+            return DocumentScanner.Plain(doc.Range(start, end));
         }
 
         private void CharacterAt(int offset, out int start, out int end)
@@ -95,7 +96,7 @@ namespace Genizah.Scanning
                 return;
             }
             if (chunk.Characters == null)
-                chunk.Characters = doc.Range(chunk.Start, chunk.End).Characters;
+                chunk.Characters = DocumentScanner.Plain(doc.Range(chunk.Start, chunk.End)).Characters;
             Word.Range character = chunk.Characters[local + 1];
             start = character.Start;
             end = character.End;
