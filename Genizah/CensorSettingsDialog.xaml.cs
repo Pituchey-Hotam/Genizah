@@ -96,6 +96,11 @@ namespace Genizah
             DialogResult = true;
         }
 
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            new AboutDialog { Owner = this }.ShowDialog();
+        }
+
         private void Defaults_Click(object sender, RoutedEventArgs e)
         {
             foreach (Row row in names)

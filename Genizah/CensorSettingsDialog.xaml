@@ -27,9 +27,7 @@
                         Style="{StaticResource FlatButton}" Margin="0"/>
                 <Button DockPanel.Dock="Right" Content="אישור" IsDefault="True" Click="Ok_Click"
                         Style="{StaticResource PrimaryButton}"/>
-                <Button Content="ברירות מחדל" Click="Defaults_Click" HorizontalAlignment="Left"
-                        Style="{StaticResource FlatButton}" Margin="0"
-                        ToolTip="החזר את כל השמות לצורת הצנזור הראשונה ברשימה"/>
+                <Border/>
             </DockPanel>
         </Border>
 
@@ -71,6 +69,10 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <TextBlock Margin="0,8,0,0">
+                <Hyperlink Click="Defaults_Click" Foreground="{StaticResource Accent}">שחזר צורות ברירת מחדל</Hyperlink>
+            </TextBlock>
+
             <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
                     Padding="0,12,0,0" Margin="0,14,0,0">
                 <StackPanel>
@@ -82,6 +84,9 @@
                               ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
                     <TextBlock x:Name="updateStatus" Foreground="{StaticResource SecondaryText}"
                                Margin="20,4,0,0" MaxWidth="320" HorizontalAlignment="Left" TextWrapping="Wrap"/>
+                    <TextBlock Margin="0,12,0,0">
+                        <Hyperlink Click="About_Click" Foreground="{StaticResource Accent}">על אודות התוסף</Hyperlink>
+                    </TextBlock>
                 </StackPanel>
             </Border>
         </StackPanel>
