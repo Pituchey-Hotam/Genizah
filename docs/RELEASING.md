@@ -10,8 +10,9 @@
   - changed ones are downloaded;
   - every file is checked against the release's signed manifests.
 
-  It then points Word at the new folder for the next start. A failure changes nothing. The settings
-  dialog can turn updates off.
+  It then points Word at the new folder for the next start. A failure changes nothing and isn't
+  shown; `update.log` records it. The settings dialog can turn updates off, and shows the running
+  version, a version installed for the next start, and the last check's time and result.
 
 Not ClickOnce: VSTO can't update a ClickOnce install from anywhere but where it was installed from,
 so an offline install could never update from the web.
@@ -24,6 +25,7 @@ so an offline install could never update from the web.
   versions\<version>.partial\   being built; renamed when complete
   versions\update.lock  one updater at a time
   settings.json
+  update.log            each check's outcome, the only trace of a failed update
 ```
 
 Registry (HKCU), written by both `tools/dist/setup.iss` and `Genizah/Registration.cs`:

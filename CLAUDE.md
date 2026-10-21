@@ -10,7 +10,10 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   VSTO's shadow-copy folder and finds the model files, graph included, through `CodeBase`, not
   `Location`.
   - `Updater`: once per session, builds the latest release's version folder beside the running
-    one and switches Word's registration to it (`Registration`); see `docs/RELEASING.md`.
+    one and switches Word's registration to it (`Registration`); see `docs/RELEASING.md`. Each
+    check's outcome goes to `%LOCALAPPDATA%\Genizah\update.log`, whose last real check the settings
+    dialog shows beside the running version. It forces TLS 1.2: an add-in's
+    AppDomain otherwise offers only SSL 3/TLS 1.0, which GitHub refuses.
   - `Scanning/DocumentScanner`: the classifier sees `Content.Text`, where offset i is
     `Characters[i + 1]`. Scoring runs off the UI thread; anything touching Word runs on it.
   - `Scanning/PositionMap`: offsets → Word ranges, by paragraph arithmetic. Avoid indexing the
@@ -42,7 +45,7 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `Quote`,
   `NameThresholds`, `ModelManifest`. For updates: `Manifests` (reads a version's signed `.vsto`
   and `.dll.manifest` after checking the signer's key; ClickOnce's algorithm names need
-  registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`.
+  registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`, `UpdateLog` (one tab-separated line per check).
 - `Genizah.Core.Tests/`: `testdata/` vectors are from the Hebrew Bible or hand-written.
   `LocalParityTests` need undistributed data and skip.
 - `model/`: `vocab.txt`, `manifest.json`, `thresholds.json` and the fetched `.onnx` belong

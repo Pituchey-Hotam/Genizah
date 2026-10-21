@@ -1,6 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Genizah.Core;
@@ -28,6 +28,13 @@ namespace Genizah
         public static readonly string VersionsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Genizah", "versions");
 
+        /// <summary>Each check's outcome, one line per check, since a failure is never shown to the user.</summary>
+        public static readonly string LogPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Genizah", "update.log");
+
+        /// <summary>Past this size the log starts over, so it can't grow without end.</summary>
+        private const long MaxLogBytes = 256 * 1024;
+
         /// <summary>Lets Word, the model load and the user's first steps go first.</summary>
         private static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(30);
 
@@ -40,22 +47,33 @@ namespace Genizah
         {
             try
             {
-                if (!AddInSettings.Current.CheckForUpdates || !IsInstalled) return;
+                if (!IsInstalled) return;
+                if (!AddInSettings.Current.CheckForUpdates)
+                {
+                    Log(UpdateOutcome.Disabled, null, "");
+                    return;
+                }
                 await Task.Delay(StartupDelay).ConfigureAwait(false);
+                // An add-in's AppDomain gets .NET's legacy protocols (SSL 3, TLS 1.0), which GitHub refuses.
+                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
                 // Redirects are left to Download, so a resumed download's range reaches the final server.
                 using (var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(60) })
                 {
                     var store = new VersionStore(VersionsDir, http, new Uri(Releases), PublicKey);
                     using (IDisposable held = store.TryLock())
                     {
-                        if (held == null) return;
+                        if (held == null)
+                        {
+                            Log(UpdateOutcome.Busy, null, "");
+                            return;
+                        }
                         await Update(store, installed).ConfigureAwait(false);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Genizah update: " + ex);
+                Log(UpdateOutcome.Failed, null, ex.ToString());
             }
         }
 
@@ -73,15 +91,46 @@ namespace Genizah
             {
                 // The previous version's folder goes once the next one has started.
                 Clean(store, running, registered, VersionStore.PartialName(latest.Version));
+                Log(UpdateOutcome.UpToDate, latest.Version, "");
                 return;
             }
 
             BuiltVersion built = await store.BuildAsync(latest, running).ConfigureAwait(false);
-            Debug.WriteLine($"Genizah update: built {latest.Version}, copied {built.Copied.Count} files, downloaded {string.Join(", ", built.Downloaded)}");
             Registration.Trust(built.Path, PublicKey);
             Registration.Switch(built.Path);
             installed(latest.Version);
             Clean(store, running, built.Path, null);
+            Log(UpdateOutcome.Installed, latest.Version, $"copied {built.Copied.Count} files, downloaded {string.Join(", ", built.Downloaded)}");
+        }
+
+        /// <summary>Records a session's check in <see cref="LogPath"/>. Never throws.</summary>
+        private static void Log(UpdateOutcome outcome, Version latest, string detail)
+        {
+            try
+            {
+                UpdateLog.Append(LogPath, new UpdateCheck(DateTime.Now, RunningVersion, outcome, latest, detail), MaxLogBytes);
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// The version Word will load from its next start, if that's newer than the running one:
+        /// an update this or another session installed. Null otherwise.
+        /// </summary>
+        public static Version NextStartVersion
+        {
+            get
+            {
+                try
+                {
+                    string registered = Registration.RegisteredDir();
+                    return registered != null && IsVersionDir(registered, out Version next) && next > RunningVersion ? next : null;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
         }
 
         private static void Clean(VersionStore store, string running, string registered, string partial)
@@ -94,7 +143,7 @@ namespace Genizah
         /// True if the add-in runs from a version folder, as an installed copy does. A development
         /// build runs from its bin folder, and isn't updated.
         /// </summary>
-        private static bool IsInstalled => IsVersionDir(ModelLoader.AddInDir, out _);
+        public static bool IsInstalled => IsVersionDir(ModelLoader.AddInDir, out _);
 
         private static bool IsVersionDir(string dir, out Version version)
         {
@@ -103,7 +152,7 @@ namespace Genizah
                 && Version.TryParse(Path.GetFileName(dir), out version);
         }
 
-        private static Version RunningVersion
+        public static Version RunningVersion
         {
             get
             {
