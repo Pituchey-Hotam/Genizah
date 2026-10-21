@@ -84,15 +84,28 @@ must first ship in an update signed with the old one.
 
 ## Cutting a release
 
-A release is a PR from `develop` into `master`:
+A release is a PR from `develop` into `master`. Feature and fix PRs land on `develop`;
+`master` receives only release merges.
 
-1. Bump `VERSION`, the only place the version lives, in a PR into `develop`. The bump never
-   happens on a release branch or on `master`, so `master` never has a commit `develop` lacks.
+1. Bump `VERSION`, the only place the version lives, in a PR into `develop`. All release changes,
+   including the bump, must land on `develop` before the release PR.
 2. If the model graph changed, publish it first (below).
-3. Open the PR from `develop`, or from a `release/<VERSION>` branch cut from it with no commits of
-   its own. CI builds, tests, packages, builds the installer, and checks that `VERSION` is new.
-4. Merge. CI uploads `v<VERSION>` as a draft, checks the uploaded assets against the build, then
+3. Test the candidate in Word, then open the PR from `develop` into `master`. CI builds, tests,
+   packages, builds the installer, and checks that `VERSION` is new. Recheck the candidate if
+   `develop` changes before merging.
+4. Merge using **Create a merge commit**, never squash or rebase. CI uploads `v<VERSION>` as a
+   draft, checks the uploaded assets against the build, then
    publishes it as latest. If the check fails, the release stays a draft.
+
+Do not routinely merge `master` back into `develop`. Its release merge commits need not be on
+`develop`; GitHub may report that `develop` is behind without it missing any release changes.
+The published release and its `v<VERSION>` tag identify what shipped; a merge to `master` alone
+does not mean publishing succeeded.
+
+Use a temporary `release/<VERSION>` branch only when a candidate must stay fixed while new work
+lands on `develop`. Any fixes or version bumps on that branch must also reach `develop`.
+For a patch to an older release, branch from its release tag and carry the fix into `develop`;
+these exceptional changes require synchronization, unlike ordinary release merge commits.
 
 ## What a release holds
 
