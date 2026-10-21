@@ -16,6 +16,7 @@ namespace Genizah
         private void CensorNamesBtn_Click(object sender, RibbonControlEventArgs e)
         {
             var window = (Microsoft.Office.Interop.Word.Window)e.Control.Context;
+            AboutDialog.ShowOnFirstUse(window);
             Globals.ThisAddIn.ShowReview(window);
         }
 
