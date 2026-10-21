@@ -84,12 +84,13 @@ must first ship in an update signed with the old one.
 
 ## Cutting a release
 
-A release is a PR into `master`:
+A release is a PR from `develop` into `master`:
 
-1. Bump `VERSION`, the only place the version lives.
+1. Bump `VERSION`, the only place the version lives, in a PR into `develop`. The bump never
+   happens on a release branch or on `master`, so `master` never has a commit `develop` lacks.
 2. If the model graph changed, publish it first (below).
-3. Open the PR. CI builds, tests, packages, builds the installer, and checks that `VERSION` is
-   new.
+3. Open the PR from `develop`, or from a `release/<VERSION>` branch cut from it with no commits of
+   its own. CI builds, tests, packages, builds the installer, and checks that `VERSION` is new.
 4. Merge. CI uploads `v<VERSION>` as a draft, checks the uploaded assets against the build, then
    publishes it as latest. If the check fails, the release stays a draft.
 
