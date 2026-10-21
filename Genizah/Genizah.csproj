@@ -232,6 +232,7 @@
     <Compile Include="Scanning\PositionMap.cs" />
     <Compile Include="Scanning\ScanTimings.cs" />
     <Compile Include="Scanning\Verdict.cs" />
+    <Compile Include="UiSynchronizationContext.cs" />
     <Compile Include="Updater.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>

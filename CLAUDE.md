@@ -30,6 +30,11 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
   - `Scanning/Verdict`: censor at or above `censor_at`, leave below `leave_below`, ask between
     (from `model/thresholds.json`). `censor_always` names are always censored; a name without
     thresholds, or a missing/invalid file, means ask.
+  - `UiSynchronizationContext`: the UI thread's context, which every await and post in the add-in
+    resumes through; each callback runs under it, since the thread's own context doesn't last
+    between calls into the add-in. It drops callbacks once the add-in shuts down: when Word quits
+    mid-scan, a continuation posted from the thread pool through WinForms' own context would throw
+    there and crash Word, which can then disable the add-in (`tools/benchmark/test_quit_during_scan.ps1`).
   - `Scanning/InputLock`: disables Word's window while the Word-side stages run, so the text
     can't change under the offsets.
   - `Results/`: the WPF results pane (`ResultsView.xaml`) inside a WinForms task pane. The list
