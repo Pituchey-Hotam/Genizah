@@ -1,0 +1,61 @@
+Genizah
+Copyright 2026 The Genizah authors
+
+Genizah, its code and its classifier model (model/), is licensed under the Apache License,
+Version 2.0 (LICENSE).
+
+
+The model
+---------
+
+The classifier model is derived from BEREL 3.0 by DICTA: The Israel Center for Text Analysis
+(https://huggingface.co/dicta-il/BEREL_3.0), licensed under the Apache License, Version 2.0.
+Changes: fine-tuned to classify divine names, vocabulary pruned, and quantized (8-bit layers,
+4-bit embedding table). DICTA does not endorse this project.
+
+BEREL is described in: Avi Shmidman, Joshua Guedalia, Shaltiel Shmidman, Cheyn Shmuel
+Shmidman, Eli Handel and Moshe Koppel, "Introducing BEREL: BERT Embeddings for
+Rabbinic-Encoded Language", arXiv:2208.01875, 2022.
+
+
+Training data
+-------------
+
+The model was trained on the texts below. They were used as training data only: none of them
+is distributed with Genizah.
+
+- עולה מן המדבר (Olah Min HaMidbar), the journal of ישיבת ברכת משה (Yeshivat Birkat Moshe),
+  used with the yeshiva's permission. Our thanks to the journal's editors over the years,
+  whose careful censoring of divine names by hand, issue after issue, is what the model
+  learned from.
+- Open Scriptures Hebrew Bible (OSHB), https://github.com/openscriptures/morphhb, CC BY 4.0.
+  Its text is the Westminster Leningrad Codex, public domain.
+- Translators Amalgamated Hebrew OT (TAHOT), STEPBible.org, Tyndale House, Cambridge,
+  https://github.com/STEPBible/STEPBible-Data, CC BY 4.0.
+- Vocalized liturgy from Sefaria, https://www.sefaria.org, in these editions:
+  - CC BY: The Metsudah Siddur (Avrohom Davis, Metsudah Publications, 1981), in the Siddur
+    Ashkenaz, Siddur Sefard and Linear Siddur editions; The Metsudah Machzor for Rosh
+    Hashanah and Yom Kippur (Metsudah Publications, New York); The Metsudah Selichos
+    (Metsudah Publications, 1986).
+  - CC BY-SA: Selichot Nusach Lita, Selichot Nusach Polin, Kinnot for Tisha B'Av and Lekha
+    Dodi from Wikisource; Selichot, Nusach Chabad, based on text from Wikisource; Yedid
+    Nefesh, original version with nikkud; Shalom Aleichem; Leshon Chakhamim, Bakhshi
+    Edition, 2021.
+  - Public domain or CC0: Torat Emet, Daat Siddur Ashkenaz, the Shaliehsaboo edition of
+    Siddur Edot HaMizrach, and other public-domain editions.
+- Medieval Hebrew poetry from Project Ben-Yehuda (https://benyehuda.org), public domain,
+  thanks to the Project Ben-Yehuda volunteers.
+
+
+Third-party software distributed with Genizah
+---------------------------------------------
+
+- ONNX Runtime (onnxruntime.dll, Microsoft.ML.OnnxRuntime.dll), Copyright (c) Microsoft
+  Corporation, MIT License: licenses/onnxruntime-LICENSE.txt. Its own third-party notices
+  are in licenses/onnxruntime-ThirdPartyNotices.txt.
+- System.Buffers, System.Memory, System.Numerics.Vectors and
+  System.Runtime.CompilerServices.Unsafe, Copyright (c) .NET Foundation and Contributors,
+  MIT License: licenses/dotnet-LICENSE.txt, with notices in
+  licenses/dotnet-THIRD-PARTY-NOTICES.txt.
+- Microsoft.Office.Tools.Common.v4.0.Utilities.dll, part of Microsoft's Visual Studio Tools
+  for Office runtime, redistributed under Microsoft's terms.
