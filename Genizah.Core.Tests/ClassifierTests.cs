@@ -14,8 +14,10 @@ namespace Genizah.Core.Tests
     /// </summary>
     public class ClassifierTests
     {
-        // The port's bar. Same runtime version, same graph, one window per run.
-        private const float Tolerance = 1e-5f;
+        // The int8 layers pick kernels by instruction set, so AVX2-only and AVX-512 VNNI CPUs give
+        // logits a few hundredths apart. Wiring mistakes (masks swapped, padding attended to,
+        // results on the wrong candidate) move them by several units.
+        private const float Tolerance = 0.1f;
 
         private static string ModelPath()
         {
@@ -64,6 +66,30 @@ namespace Genizah.Core.Tests
                     float expected = (float)want[i].GetProperty("logit").GetDouble();
                     Assert.True(Math.Abs(expected - got[i].Logit) <= Tolerance,
                         $"{got[i].Candidate}: logit {got[i].Logit}, Python {expected}");
+                }
+            }
+        }
+
+        // Batching would change logits by less than Tolerance, so this compares on one machine,
+        // exactly: each candidate in a whole text scores as its window does alone.
+        [SkippableTheory]
+        [MemberData(nameof(PipelineTests.Cases), MemberType = typeof(PipelineTests))]
+        public void EachWindowIsScoredAlone(string name)
+        {
+            var model = Classifier;
+            using (var doc = TestData.Json(TestData.TestDataPath("pipeline.json")))
+            {
+                var c = doc.RootElement.GetProperty("cases").EnumerateArray()
+                    .Single(k => k.GetProperty("case").GetString() == name);
+                var want = c.GetProperty("candidates").EnumerateArray().ToList();
+                var got = model.Classify(c.GetProperty("text").GetString());
+                Assert.Equal(want.Count, got.Count);
+                for (int i = 0; i < got.Count; i++)
+                {
+                    float alone = model.Score(new ModelInput(
+                        TestData.Longs(want[i].GetProperty("input_ids")),
+                        TestData.Floats(want[i].GetProperty("target_mask"))));
+                    Assert.True(alone == got[i].Logit, $"{got[i].Candidate}: logit {got[i].Logit}, alone {alone}");
                 }
             }
         }
