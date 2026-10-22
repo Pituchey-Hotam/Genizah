@@ -84,23 +84,30 @@ must first ship in an update signed with the old one.
 
 ## Cutting a release
 
-A release is a PR from `develop` into `master`. Feature and fix PRs land on `develop`;
-`master` receives only release merges.
+Feature and fix PRs land on `develop`, then reach `master` through a PR from `develop`.
+Merging does not publish a release or require a version bump. Publishing is a separate,
+manual run of the **Release** workflow on `master`.
 
 1. Bump `VERSION`, the only place the version lives, in a PR into `develop`. All release changes,
    including the bump, must land on `develop` before the release PR.
 2. If the model graph changed, publish it first (below).
 3. Test the candidate in Word, then open the PR from `develop` into `master`. CI builds, tests,
-   packages, builds the installer, and checks that `VERSION` is new. Recheck the candidate if
-   `develop` changes before merging.
-4. Merge using **Create a merge commit**, never squash or rebase. CI uploads `v<VERSION>` as a
-   draft, checks the uploaded assets against the build, then
-   publishes it as latest. If the check fails, the release stays a draft.
+   packages, and builds the installer. Recheck the candidate if `develop` changes before merging.
+4. Merge using **Create a merge commit**, never squash or rebase.
+5. Open **Actions → Release → Run workflow**, select **master**, and run it. The workflow
+   rejects other branches and checks that `VERSION` is valid, untagged, and greater than every
+   released add-in version before starting the signed build. It builds and tests the selected
+   master commit, uploads `v<VERSION>` as a draft, checks the uploaded assets against the build,
+   then publishes it as latest. If the asset check fails, the release stays a draft.
+
+CI runs on PRs and pushes to `develop`, excluding changes confined to Markdown, `docs/`,
+`site/`, and `scratch/`; it can also be run manually. CI does not enforce release versioning,
+and docs or site updates can reach `master` without publishing an add-in release.
 
 Do not routinely merge `master` back into `develop`. Its release merge commits need not be on
 `develop`; GitHub may report that `develop` is behind without it missing any release changes.
-The published release and its `v<VERSION>` tag identify what shipped; a merge to `master` alone
-does not mean publishing succeeded.
+The published release and its `v<VERSION>` tag identify what shipped; merging to `master`
+does not publish anything.
 
 Use a temporary `release/<VERSION>` branch only when a candidate must stay fixed while new work
 lands on `develop`. Any fixes or version bumps on that branch must also reach `develop`.

@@ -1,4 +1,4 @@
-# A push to master affecting the shipped add-in publishes v<VERSION>: a GitHub release, marked latest,
+# A manual run on master publishes v<VERSION>: a GitHub release, marked latest,
 # holding the version's signed manifests and every file they list, under flat names, and the
 # offline installer. Installed copies update from the latest release. It is uploaded as a draft,
 # checked, and only then published, so an update never sees a half-uploaded release. See
@@ -6,8 +6,7 @@
 name: Release
 
 on:
-  push:
-    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,12 +16,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  changes:
-    uses: ./.github/workflows/changes.yml
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require master
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if [ "$RELEASE_REF" != refs/heads/master ]; then
+            echo "::error::Run Release from the master branch"; exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: VERSION is new and greater than every release
+        run: |
+          v=$(tr -d ' \r\n' < VERSION)
+          if ! [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::VERSION must be MAJOR.MINOR.PATCH, not '$v'"; exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$v" > /dev/null; then
+            echo "::error file=VERSION::v$v is already released: bump VERSION"; exit 1
+          fi
+          latest=$(git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+          if [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$latest" "$v" | sort -V | tail -n 1)" != "$v" ]; then
+            echo "::error file=VERSION::VERSION $v is lower than the latest release, v$latest"; exit 1
+          fi
+          echo "This run releases v$v (latest: ${latest:+v}${latest:-none})"
 
   build:
-    needs: changes
-    if: needs.changes.outputs.release == 'true'
+    needs: version
     uses: ./.github/workflows/build.yml
     with:
       release-signing: true
@@ -52,7 +78,7 @@ jobs:
       - name: Create the release as a draft
         run: |
           if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
-            echo "::error file=VERSION::$TAG is already released: a merge to master must bump VERSION"; exit 1
+            echo "::error file=VERSION::$TAG is already released: bump VERSION before running Release"; exit 1
           fi
           # A draft left by an earlier, failed run of this release.
           if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null)" = "true" ]; then
