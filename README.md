@@ -1,13 +1,24 @@
 # Genizah
 
-A Word add-in that finds the divine names in a Hebrew document and censors them for you.
+[![Latest version](https://img.shields.io/github/v/release/Pituchey-Hotam/Genizah?filter=v*&label=latest%20version)](https://github.com/Pituchey-Hotam/Genizah/releases/latest)
 
-Once one of the names is written, the paper it's on can't simply be thrown away; it needs
-genizah. Writing the name in a modified form (אלקים for אלהים, ה' for יהוה) avoids that, but
-going through a long document by hand is slow and easy to get wrong. And it isn't a matter of
-search and replace: אל is usually just "to", and אלהים can mean judges or foreign gods. Genizah
-reads each occurrence in its context, censors the ones it's sure are divine names, leaves the
-ones it's sure aren't, and asks you about the rest.
+Genizah is a Word add-in that automatically finds divine names in Hebrew documents and changes
+their spelling, including names that require understanding the context.
+
+Finding these names takes more than search and replace: אל can be a preposition, and אלהים can
+refer to judges or foreign gods. Genizah uses an AI model trained on the Hebrew Bible, prayer
+books and modern Torah articles to estimate whether each occurrence is a divine name. It
+changes likely divine names to modified spellings, leaves likely ordinary uses, and asks you
+to review uncertain cases. The model runs entirely on your computer; your text is never sent
+to an external service. Only update checks need an internet connection.
+
+The add-in was written for the practice followed at Yeshivat Birkat Moshe in Ma'ale Adumim,
+based on Rabbi Nahum Eliezer Rabinovitch's ruling in *Siach Nachum*, responsum 74. Under the
+conditions described there, Torah writings without explicit divine names may be discarded or
+recycled respectfully; pages containing those names require genizah. Other authorities require
+genizah for Torah writings even without divine names. **Changing the names does not make a
+document exempt from genizah according to every opinion.** Consult the halachic authority you
+follow.
 
 ![The review pane beside a document](docs/images/review-pane.png)
 
