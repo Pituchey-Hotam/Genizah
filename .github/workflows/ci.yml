@@ -1,22 +1,11 @@
-# PRs and pushes to develop with build-relevant changes: build and test.
-# Documentation, site and scratch-only changes skip CI. A PR into master is a release (release.yml
-# runs when it merges), so it must also bump VERSION past every released version.
+# Always report CI; skip expensive jobs for documentation, site and scratch-only changes.
+# Only changes affecting the shipped add-in require a new VERSION on PRs into master.
 name: CI
 
 on:
   push:
     branches: [develop]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'site/**'
-      - 'scratch/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'site/**'
-      - 'scratch/**'
   workflow_dispatch:
 
 permissions:
@@ -27,11 +16,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   build:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     uses: ./.github/workflows/build.yml
 
   version:
-    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    needs: changes
+    if: github.event_name == 'pull_request' && github.base_ref == 'master' && needs.changes.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

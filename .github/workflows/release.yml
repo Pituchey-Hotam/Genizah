@@ -1,4 +1,4 @@
-# A push to master (a merged release PR) publishes v<VERSION>: a GitHub release, marked latest,
+# A push to master affecting the shipped add-in publishes v<VERSION>: a GitHub release, marked latest,
 # holding the version's signed manifests and every file they list, under flat names, and the
 # offline installer. Installed copies update from the latest release. It is uploaded as a draft,
 # checked, and only then published, so an update never sees a half-uploaded release. See
@@ -17,7 +17,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   build:
+    needs: changes
+    if: needs.changes.outputs.release == 'true'
     uses: ./.github/workflows/build.yml
     with:
       release-signing: true
