@@ -1,35 +1,44 @@
 # Genizah
 
-A Word add-in that finds the divine names in a Hebrew document and censors them for you.
+[![Latest version](https://img.shields.io/github/v/release/Pituchey-Hotam/Genizah?filter=v*&label=latest%20version)](https://github.com/Pituchey-Hotam/Genizah/releases/latest)
 
-Once one of the names is written, the paper it's on can't simply be thrown away; it needs
-genizah. Writing the name in a modified form (אלקים for אלהים, ה' for יהוה) avoids that, but
-going through a long document by hand is slow and easy to get wrong. And it isn't a matter of
-search and replace: אל is usually just "to", and אלהים can mean judges or foreign gods. Genizah
-reads each occurrence in its context, censors the ones it's sure are divine names, leaves the
-ones it's sure aren't, and asks you about the rest.
+Genizah is a Word add-in that automatically finds divine names in Hebrew documents and changes
+their spelling, including names that require understanding the context.
+
+Finding these names takes more than search and replace: אל can be a preposition, and אלהים can
+refer to judges or foreign gods. Genizah uses a completely local AI model trained on the Hebrew Bible, prayer
+books and modern Torah articles to estimate whether each occurrence is a divine name. It
+changes likely divine names to modified spellings, leaves likely ordinary uses, and asks you
+to review uncertain cases. The model runs entirely on your computer; your text is never sent
+to an external service. Only update checks need an internet connection.
 
 ![The review pane beside a document](docs/images/review-pane.png)
 
-## How it works
+## Genizah in action
 
-1. **Scan.** Click **סקירת שמות** in the **גניזה** group on Word's **סקירה** (Review) tab. Genizah scans the
-   document and opens a review pane beside it.
-2. **It sorts the names.** Every name it finds goes into one of three groups:
-   - **לצנזר**: divine names. Genizah censors these right away.
-   - **להשאיר**: ordinary words that happen to share the spelling. Left as they are.
-   - **לא בטוח**: the ones it isn't sure about. These wait for you.
-3. **Review.** Go through **לא בטוח**. Each row shows the name in its sentence; select it and
-   Word jumps to the spot in the document. Choose **צנזר** or **השאר**. You can also check the
-   other two groups and change any decision; a censored name can be restored.
+Click <strong>סקירת שמות</strong> in the <strong>גניזה</strong> group on Word's
+<strong>סקירה</strong> (Review) tab to scan the document and open the review pane.
 
-   ![Deciding an uncertain name](docs/images/review-ask.png)
-
-4. **Print.** If you print with names still waiting for a decision, or without having
-   reviewed the document, Genizah asks first, so that nothing goes out uncensored by
-   accident.
-
-   ![The check before printing](docs/images/print-check.png)
+<table>
+<tr>
+<td width="65%" valign="top">
+<p><strong>Review the results.</strong> Names are grouped as <strong>לצנזר</strong> (censored
+automatically), <strong>להשאיר</strong> (left unchanged), or <strong>לא בטוח</strong> (needs your
+decision). Select a row to jump to its place in the document, then choose <strong>צנזר</strong>
+or <strong>השאר</strong>. You can change any decision and restore censored names.</p>
+<a href="docs/images/review-ask.png"><img src="docs/images/review-ask.png" alt="Deciding an uncertain name" width="520"></a>
+<p><strong>Print with a final check.</strong> If names still need a decision, or the document
+hasn't been reviewed, Genizah asks before printing.</p>
+<a href="docs/images/print-check.png"><img src="docs/images/print-check.png" alt="The check before printing" width="520"></a>
+</td>
+<td width="35%" valign="top">
+<p><strong>Choose your settings.</strong> Open the small arrow in the <strong>גניזה</strong>
+ribbon group to choose each name's spelling, toggle print checks and automatic updates,
+and see the installed version and update status.</p>
+<a href="docs/images/settings.png"><img src="docs/images/settings.png" alt="The settings dialog" width="260"></a>
+</td>
+</tr>
+</table>
 
 ## Installing
 
@@ -39,8 +48,28 @@ needs Word for Windows (64-bit). The model is included and runs on your own comp
 documents never leave it and no internet connection is needed. When one is available, Genizah
 updates itself in the background.
 
-**Genizah is an aid, not a guarantee.** It can miss a name or censor a word that isn't one;
-review the document before relying on it.
+**Genizah is an aid, not a guarantee.** It can censor nondivine words; and in rare cases miss a name.
+Review the results before relying on it.
+
+## Halachic background
+
+Maimonides (רמב״ם, הלכות יסודי התורה ו, ב) rules that erasing one of the seven
+divine names is prohibited מדאורייתא; this is also codified in the
+שו״ע. Authorities disagree about biblical verses and Torah writings that do not
+contain divine names. They agree that treating such writings disrespectfully or discarding
+them is prohibited, but differ over the status and conditions of that prohibition.
+
+The add-in was written for the practice followed at Yeshivat Birkat Moshe in Ma'ale Adumim,
+based on the ruling of its Rosh Yeshiva, Rabbi Nahum Eliezer Rabinovitch (שו״ת שיח נחום, סימן עד).
+Following Maimonides, he ruled that the prohibition concerning Torah writings
+without divine names is rabbinic. Under the conditions detailed in that responsum, such pages
+may therefore be placed in the trash or recycled respectfully. In contrast, for pages containing
+explicit divine names require genizah מדאורייתא, must be treated as Shemot and be disposed of accordingly.
+
+**The add-in does not guarantee that a document is exempt from genizah according to every
+opinion.** Some authorities hold that all Torah writings require genizah; according to that
+view, changing the names does not remove the requirement. Each user should consult the
+halachic authority they follow.
 
 ## For developers
 
