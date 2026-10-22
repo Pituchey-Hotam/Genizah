@@ -142,6 +142,58 @@ h1 {
 main { padding-bottom: var(--section); }
 main section { padding-top: var(--section); }
 
+.motivation {
+  max-width: 70rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+}
+.motivation-text { min-width: 0; }
+.chat-examples { margin: 0; min-width: 0; padding: 1.5rem .75rem; }
+.chat-messages { display: grid; gap: 1.15rem; list-style: none; padding: 0; margin: 0; }
+.chat-message {
+  position: relative;
+  width: fit-content;
+  max-width: 88%;
+  padding: .8rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 0 14px 14px 14px;
+  box-shadow: var(--shadow);
+  transform: rotate(-2deg);
+}
+.chat-message::before {
+  content: '';
+  position: absolute;
+  inset-inline-end: -.5rem;
+  top: -1px;
+  border-block-end: .65rem solid transparent;
+  border-inline-start: .55rem solid var(--rule);
+}
+.chat-message::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: calc(-.5rem + 1px);
+  top: 0;
+  border-block-end: calc(.65rem - 1px) solid transparent;
+  border-inline-start: .55rem solid var(--card);
+}
+.chat-message:nth-child(1) { margin-inline-start: 1rem; }
+.chat-message:nth-child(2) { justify-self: end; transform: rotate(2deg); }
+.chat-message:nth-child(3) { margin-inline-start: 2rem; transform: rotate(-3deg); }
+.chat-message:nth-child(4) { justify-self: end; margin-inline-end: .5rem; transform: rotate(1.5deg); }
+.chat-message:nth-child(5) { margin-inline-start: .25rem; transform: rotate(-1deg); }
+.chat-sender { color: #22685d; font-size: .9rem; font-weight: 600; }
+.chat-message:nth-child(even) .chat-sender { color: var(--accent); }
+.chat-message blockquote { margin: .15rem 0 0; }
+.chat-message mark { background: #f9e77c; color: #2b2119; padding-inline: .15em; }
+@media (prefers-color-scheme: dark) { .chat-sender { color: #8bcbb8; } }
+@media (max-width: 760px) {
+  .motivation { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .chat-examples { width: 100%; max-width: 32rem; justify-self: center; }
+}
+
 .feature {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
