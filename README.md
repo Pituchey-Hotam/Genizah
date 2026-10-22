@@ -51,6 +51,9 @@ updates itself in the background.
 **Genizah is an aid, not a guarantee.** It can censor nondivine words; and in rare cases miss a name.
 Review the results before relying on it.
 
+Found a bug or something that doesn't look right? I'd be glad to hear about it—please
+[open an issue](https://github.com/Pituchey-Hotam/Genizah/issues).
+
 ## Halachic background
 
 Maimonides (רמב״ם, הלכות יסודי התורה ו, ב) rules that erasing one of the seven
@@ -63,13 +66,42 @@ The add-in was written for the practice followed at Yeshivat Birkat Moshe in Ma'
 based on the ruling of its Rosh Yeshiva, Rabbi Nahum Eliezer Rabinovitch (שו״ת שיח נחום, סימן עד).
 Following Maimonides, he ruled that the prohibition concerning Torah writings
 without divine names is rabbinic. Under the conditions detailed in that responsum, such pages
-may therefore be placed in the trash or recycled respectfully. In contrast, for pages containing
-explicit divine names require genizah מדאורייתא, must be treated as Shemot and be disposed of accordingly.
+may therefore be placed in the trash or recycled respectfully. In contrast, pages containing
+explicit divine names require genizah מדאורייתא and must be treated as Shemot and disposed of accordingly.
 
 **The add-in does not guarantee that a document is exempt from genizah according to every
 opinion.** Some authorities hold that all Torah writings require genizah; according to that
 view, changing the names does not remove the requirement. Each user should consult the
 halachic authority they follow.
+
+## The model
+
+Genizah uses a fine-tuned version of [BEREL 3.0](https://huggingface.co/dicta-il/BEREL_3.0),
+DICTA's language model for rabbinic Hebrew. Its 12-layer encoder reads a candidate name with
+up to 32 normalized characters on either side and produces a score for whether it is divine.
+Per-name thresholds turn that score into a decision: leave, ask, or censor.
+
+The model was fine-tuned for three epochs on about 38,000 labeled occurrences from modern
+Torah articles, the Hebrew Bible, and liturgy and poetry. Labels came from the hand-censored
+journal 'עולה מן המדבר' (a monthly internal journal of ישיבת ברכת משה), biblical sense annotations
+from OSHB and STEPBible TAHOT, and vowel distinctions in vocalized liturgy. Existing censorship marks
+were removed as label clues before training, so the model had to learn from context.
+
+During development, five-fold cross-validation kept each article issue in one fold and grouped
+parallel biblical passages together. Each development occurrence was scored by a model trained
+on the other folds; liturgy supplied additional training examples. The final model was then
+trained on the full development pool. A pruned vocabulary, 8-bit layers and a 4-bit embedding
+table keep the shipped ONNX model to about 100 MB, running locally on the CPU.
+
+The strip below shows how the model separates ordinary and divine uses of the bare spelling
+**אל** in article development data. Each dot is a labeled occurrence: blue is ordinary, orange
+is divine. The shaded band asks for review; scores to its left are left unchanged, and those
+to its right are censored. The overlap is why review still matters.
+
+![Development score strip separating ordinary and divine uses of אל, with leave, ask and censor regions](docs/images/model-el-separation.png)
+
+The model weights are available under Apache 2.0. The training code is not yet public;
+I plan to release it in the future.
 
 ## For developers
 
@@ -93,6 +125,6 @@ Releases and updates: [`docs/RELEASING.md`](docs/RELEASING.md).
 ## License and credits
 
 Apache License 2.0 (`LICENSE`), for the code and the model. The model is built on DICTA's
-BEREL 3.0 and learned from the hand-censored issues of עולה מן המדבר, the journal of ישיבת
+BEREL 3.0 and learned from the hand-censored issues of 'עולה מן המדבר', a monthly internal journal of ישיבת
 ברכת משה, and from the Hebrew Bible and vocalized liturgy. `NOTICE` credits them all, along with the
 third-party software shipped with the add-in, whose licenses are in `licenses/`.
