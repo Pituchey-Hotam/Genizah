@@ -1,11 +1,22 @@
-# Every PR and every push to develop: build and test. A PR into master is a release (release.yml
+# PRs and pushes to develop with build-relevant changes: build and test.
+# Documentation, site and scratch-only changes skip CI. A PR into master is a release (release.yml
 # runs when it merges), so it must also bump VERSION past every released version.
 name: CI
 
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'site/**'
+      - 'scratch/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'site/**'
+      - 'scratch/**'
   workflow_dispatch:
 
 permissions:
