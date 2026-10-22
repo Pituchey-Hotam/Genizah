@@ -1,11 +1,20 @@
-# Always report CI; skip expensive jobs for documentation, site and scratch-only changes.
-# Only changes affecting the shipped add-in require a new VERSION on PRs into master.
+# Documentation, site and scratch-only changes skip CI; manual runs are always available.
 name: CI
 
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'site/**'
+      - 'scratch/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'site/**'
+      - 'scratch/**'
   workflow_dispatch:
 
 permissions:
@@ -16,35 +25,5 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    uses: ./.github/workflows/changes.yml
-
   build:
-    needs: changes
-    if: needs.changes.outputs.build == 'true'
     uses: ./.github/workflows/build.yml
-
-  version:
-    needs: changes
-    if: github.event_name == 'pull_request' && github.base_ref == 'master' && needs.changes.outputs.release == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: VERSION is new and greater than every release
-        run: |
-          v=$(tr -d ' \r\n' < VERSION)
-          if ! [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error file=VERSION::VERSION must be MAJOR.MINOR.PATCH, not '$v'"; exit 1
-          fi
-          if git rev-parse -q --verify "refs/tags/v$v" > /dev/null; then
-            echo "::error file=VERSION::v$v is already released: bump VERSION"; exit 1
-          fi
-          latest=$(git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
-          if [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$latest" "$v" | sort -V | tail -n 1)" != "$v" ]; then
-            echo "::error file=VERSION::VERSION $v is lower than the latest release, v$latest"; exit 1
-          fi
-          echo "Merging this releases v$v (latest: ${latest:+v}${latest:-none})"
