@@ -1,0 +1,54 @@
+name: Classify changes
+
+on:
+  workflow_call:
+    outputs:
+      build:
+        value: ${{ jobs.changes.outputs.build }}
+      release:
+        value: ${{ jobs.changes.outputs.release }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.filter.outputs.build }}
+      release: ${{ steps.filter.outputs.release }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify changed files
+        id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          build=false release=false
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            build=true release=true
+          else
+            range="$BASE..$HEAD"
+            if [ "$GITHUB_EVENT_NAME" = pull_request ]; then range="$BASE...$HEAD"; fi
+            if [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+              git ls-files -z > "$RUNNER_TEMP/changed-files"
+            else
+              # Include both sides of moves, including code moved into docs.
+              git diff --name-only --no-renames -z "$range" > "$RUNNER_TEMP/changed-files"
+            fi
+            while IFS= read -r -d '' path; do
+              case "$path" in
+                *.md|docs/*|site/*|scratch/*) continue ;;
+              esac
+              build=true
+              case "$path" in
+                .github/workflows/build.yml|.github/workflows/release.yml) release=true ;;
+                .github/*|Genizah.Core.Tests/*|tools/benchmark/*) ;;
+                *) release=true ;;
+              esac
+            done < "$RUNNER_TEMP/changed-files"
+          fi
+          printf 'build=%s\nrelease=%s\n' "$build" "$release" >> "$GITHUB_OUTPUT"
