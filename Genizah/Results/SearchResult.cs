@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Genizah.Core;
 using Genizah.Scanning;
 using Microsoft.Office.Interop.Word;
@@ -38,12 +38,23 @@ namespace Genizah.Results
         // Live COM ranges follow edits without adding bookmarks to the document or undo history.
         public Range Range { get; }
 
-        public SearchResult(Document doc, Range range, NameInfo name, float logit, Verdict verdict, string contextBefore, string contextAfter)
+        /// <summary>The normalized text the model scored, or null for a result that wasn't scored.</summary>
+        public ModelWindow Window { get; }
+
+        /// <summary>How many times the user has censored or left this name from the pane.</summary>
+        public int Revisions { get; private set; }
+
+        /// <summary>From first selecting the name to the user's last decision on it, or null if never selected.</summary>
+        public long? DecideMs { get; private set; }
+        private long firstSeen = -1;
+
+        public SearchResult(Document doc, Range range, NameInfo name, float logit, Verdict verdict, ModelWindow window, string contextBefore, string contextAfter)
         {
             Range = range.Duplicate;
             Name = name;
             Logit = logit;
             Verdict = verdict;
+            Window = window;
             State = verdict == Verdict.Leave ? ResultState.Left : ResultState.Pending;
             uncensoredState = State;
             OriginalText = range.Text;
@@ -70,6 +81,29 @@ namespace Genizah.Results
                 Replace(OriginalText);
             State = ResultState.Left;
             uncensoredState = ResultState.Left;
+        }
+
+        /// <summary>The user selected this name in the pane.</summary>
+        public void MarkSeen()
+        {
+            if (firstSeen < 0) firstSeen = System.Diagnostics.Stopwatch.GetTimestamp();
+        }
+
+        /// <summary>The user censored or left this name from the pane.</summary>
+        public void RecordDecision()
+        {
+            Revisions++;
+            if (firstSeen >= 0)
+                DecideMs = (System.Diagnostics.Stopwatch.GetTimestamp() - firstSeen) * 1000 / System.Diagnostics.Stopwatch.Frequency;
+        }
+
+        /// <summary>The user's decision on this name as a contribution, or null if there is none to send (<see cref="Contributions.Record"/>).</summary>
+        public ContributionRecord ToContribution()
+        {
+            if (Window == null || IsStale) return null;
+            bool? censored = State == ResultState.Pending ? (bool?)null : State == ResultState.Censored;
+            string verdict = Verdict == Verdict.Censor ? "censor" : Verdict == Verdict.Ask ? "ask" : "leave";
+            return Contributions.Record(Name.Id, Window, verdict, Logit, censored, Revisions, DecideMs);
         }
 
         /// <summary>Reads only this occurrence; never searches for another matching name.</summary>

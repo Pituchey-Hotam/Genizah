@@ -24,6 +24,9 @@ namespace Genizah.Core.Tests
             Assert.True(settings.CheckForUpdates);
             Assert.True(settings.CheckBeforePrinting);
             Assert.False(settings.AboutShown);
+            Assert.True(settings.OfferContributions);
+            Assert.Equal("", settings.InstallId);
+            Assert.Null(settings.ContributionEndpoint);
             Assert.Empty(settings.Replacements);
         }
 

@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Genizah.Core;
 using Genizah.Scanning;
 
 namespace Genizah.Results
@@ -23,6 +27,17 @@ namespace Genizah.Results
         private List<SearchResult> results = new List<SearchResult>();
         private string notice;
         private string summaryText = "";
+
+        // The offer to send the review's decisions (Contributing), from this scan's results.
+        private Thresholds thresholds;
+        /// <summary>Keys of the decisions the user chose not to send, until the next scan.</summary>
+        private readonly HashSet<string> declined = new HashSet<string>();
+        private bool sending;
+        private ContributionBatch failedBatch;
+        private string failure;
+        private string sentMessage;
+        /// <summary>Counts scans, so a send that finishes after a new one doesn't report on it.</summary>
+        private int generation;
 
         /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
         public event EventHandler ResultChanged;
@@ -71,6 +86,17 @@ namespace Genizah.Results
             notice = null;
             groupRows.Clear();
             items.Clear();
+            ResetContribution(null);
+        }
+
+        private void ResetContribution(Thresholds scanned)
+        {
+            thresholds = scanned;
+            declined.Clear();
+            failedBatch = null;
+            sentMessage = null;
+            generation++;
+            UpdateContribution();
         }
 
         private void ShowProgressPanel(bool show)
@@ -85,12 +111,14 @@ namespace Genizah.Results
         /// <summary>
         /// Lists the results in groups: the ones the model asked about, then those it censored, then
         /// those it left, each in document order. Only the first group starts expanded.
-        /// <paramref name="notice"/> is shown above them.
+        /// <paramref name="notice"/> is shown above them. The decisions can be offered for sending
+        /// only with the <paramref name="thresholds"/> the results were decided by.
         /// </summary>
-        public void ShowSearchResults(List<SearchResult> results, string notice)
+        public void ShowSearchResults(List<SearchResult> results, string notice, Thresholds thresholds)
         {
             this.results = results;
             this.notice = notice;
+            ResetContribution(thresholds);
             groupRows.Clear();
             var shown = new List<object>();
             foreach (Verdict verdict in new[] { Verdict.Ask, Verdict.Censor, Verdict.Leave })
@@ -180,6 +208,7 @@ namespace Genizah.Results
             if (list.SelectedItem is ResultItem item)
             {
                 ReviewRequested?.Invoke(this, EventArgs.Empty);
+                item.Result.MarkSeen();
                 item.Result.Reconcile();
                 item.Refresh();
                 ShowSummary();
@@ -291,6 +320,7 @@ namespace Genizah.Results
                 undo.StartCustomRecord(undoName);
                 recording = true;
                 action(item.Result);
+                item.Result.RecordDecision();
                 done = true;
             }
             catch (COMException ex)
@@ -331,6 +361,117 @@ namespace Genizah.Results
             summary.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             summaryNotice.Text = notice;
             summaryNotice.Visibility = string.IsNullOrEmpty(notice) ? Visibility.Collapsed : Visibility.Visible;
+            UpdateContribution();
+        }
+
+        /// <summary>
+        /// The decisions to offer: once nothing awaits a decision, those not yet sent or declined.
+        /// </summary>
+        private List<ContributionRecord> Offer()
+        {
+            if (thresholds == null || !Contributing.Offered || results.Any(r => !r.IsStale && r.State == ResultState.Pending))
+                return new List<ContributionRecord>();
+            return Contributing.Unsent(results, thresholds).Where(r => !declined.Contains(r.Key)).ToList();
+        }
+
+        /// <summary>
+        /// Shows the contribution row as things stand: sending, failed, offering the decisions,
+        /// thanking for them, or nothing.
+        /// </summary>
+        private void UpdateContribution()
+        {
+            List<ContributionRecord> offer = sending || failedBatch != null ? null : Offer();
+            if (sending)
+                ShowContribution("שולח…", null, false, null);
+            else if (failedBatch != null)
+                ShowContribution(failure, "נסה שוב", false, "לא עכשיו");
+            else if (offer.Count > 0)
+                ShowContribution(offer.Count == 1
+                    ? "סיימת לסקור. לשלוח את ההכרעה שלך כדי לשפר את המודל? יישלחו רק כמה מילים סביב השם."
+                    : $"סיימת לסקור. לשלוח את {offer.Count} ההכרעות שלך כדי לשפר את המודל? יישלחו רק כמה מילים סביב כל שם.",
+                    "שלח", true, "לא עכשיו");
+            else if (sentMessage != null)
+                ShowContribution(sentMessage, null, false, "סגור");
+            else
+                contributePanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowContribution(string text, string send, bool show, string close)
+        {
+            contributeText.Text = text;
+            contributeSend.Content = send;
+            contributeSend.Visibility = send == null ? Visibility.Collapsed : Visibility.Visible;
+            contributeShow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            contributeClose.Content = close;
+            contributeClose.Visibility = close == null ? Visibility.Collapsed : Visibility.Visible;
+            contributePanel.Visibility = Visibility.Visible;
+        }
+
+        private async void ContributeSend_Click(object sender, RoutedEventArgs e)
+        {
+            if (failedBatch != null)
+                await Contribute(failedBatch);
+            else
+            {
+                List<ContributionRecord> offer = Offer();
+                if (offer.Count > 0) await Contribute(Contributing.NewBatch(offer, thresholds));
+            }
+        }
+
+        private async void ContributeShow_Click(object sender, RoutedEventArgs e)
+        {
+            List<ContributionRecord> offer = Offer();
+            if (offer.Count == 0) return;
+            var dialog = new ContributeDialog(offer);
+            if (dialog.ShowOver(Globals.ThisAddIn.Application) != true) return;
+            List<ContributionRecord> chosen = dialog.Chosen;
+            declined.UnionWith(offer.Except(chosen).Select(r => r.Key));
+            if (chosen.Count > 0)
+                await Contribute(Contributing.NewBatch(chosen, thresholds));
+            else
+                UpdateContribution();
+        }
+
+        private void ContributeClose_Click(object sender, RoutedEventArgs e)
+        {
+            declined.UnionWith(Offer().Select(r => r.Key));
+            failedBatch = null;
+            sentMessage = null;
+            UpdateContribution();
+        }
+
+        /// <summary>Sends a batch; on failure, keeps it to retry as it is, so the server can recognize a resend.</summary>
+        private async Task Contribute(ContributionBatch batch)
+        {
+            int scan = generation;
+            sending = true;
+            failedBatch = null;
+            UpdateContribution();
+            try
+            {
+                await Contributing.Send(batch);
+                if (scan == generation)
+                    sentMessage = batch.Records.Count == 1 ? "ההכרעה נשלחה. תודה!" : $"{batch.Records.Count} הכרעות נשלחו. תודה!";
+            }
+            catch (ContributionException ex)
+            {
+                if (scan == generation) Fail(batch, "השליחה נכשלה: " + ex.Message);
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is IOException)
+            {
+                if (scan == generation) Fail(batch, "השליחה נכשלה. אולי אין חיבור לאינטרנט.");
+            }
+            finally
+            {
+                sending = false;
+                UpdateContribution();
+            }
+        }
+
+        private void Fail(ContributionBatch batch, string message)
+        {
+            failedBatch = batch;
+            failure = message;
         }
     }
 }

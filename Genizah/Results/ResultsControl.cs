@@ -35,7 +35,8 @@ namespace Genizah
         public void ShowProgress(string stage, int done = 0, int total = 0) => view.ShowProgress(stage, done, total);
 
         /// <inheritdoc cref="ResultsView.ShowSearchResults"/>
-        public void ShowSearchResults(List<SearchResult> results, string notice) => view.ShowSearchResults(results, notice);
+        public void ShowSearchResults(List<SearchResult> results, string notice, Scanning.Thresholds thresholds) =>
+            view.ShowSearchResults(results, notice, thresholds);
         public void RefreshResults() => view.RefreshResults();
 #if DEBUG
         internal void RequestScan() => view.RequestScan();

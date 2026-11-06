@@ -68,12 +68,23 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     the credits; keep its credits in step with `NOTICE`.
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
     (`Genizah.Core/UserSettings`), shared by every version and Word build.
+  - `Contributing`, `ContributeDialog.xaml`: the opt-out offer, once a review has nothing
+    pending, to send the user's decisions to the collection server (README, "Sharing
+    decisions"). A record is sent only for a decision made in the pane (`SearchResult.Revisions`)
+    that answers an ask or reverses the model, never one reversing a `censor_always` name; its
+    text is only the model's window (`ModelWindow`, from `WindowEncoder.Window`, the same slicing
+    the scan encodes). A failed send keeps its batch and ids for the retry, which the server
+    deduplicates. Sent records' hashes go to `%LOCALAPPDATA%\Genizah\contributed.json` so a rescan
+    doesn't offer them again. The server is `Contributing.BuiltInEndpoint`, or the settings'
+    `contribution_endpoint` for testing (https, or http on loopback); with neither, the pane and
+    the settings show nothing about contributions.
 - `Genizah.Core/` (netstandard2.0, and net48 so the add-in gets `SignedXml` from the framework):
   a port of the Python input pipeline the model was trained with, which isn't in this repo; the
   test vectors stand in for it. `TextNormalizer` → `NameFinder` → `WordPieceTokenizer`/
   `WindowEncoder` → `NameClassifier`. Outside the pipeline:
   `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `WordText`, `Quote`,
-  `NameThresholds`, `ModelManifest`. For updates: `Manifests` (reads a version's signed `.vsto`
+  `NameThresholds`, `ModelManifest`, `Contributions` (which decisions become records, the wire
+  format the collection server validates, its client, and `SentLog`). For updates: `Manifests` (reads a version's signed `.vsto`
   and `.dll.manifest` after checking the signer's key; ClickOnce's algorithm names need
   registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`, `UpdateLog` (one tab-separated line per check).
 - `Genizah.Core.Tests/`: `testdata/` vectors are from the Hebrew Bible or hand-written.

@@ -27,10 +27,21 @@ namespace Genizah.Scanning
     {
         private readonly NameThresholds byName;
 
-        private Thresholds(NameThresholds byName)
+        private Thresholds(NameThresholds byName, string fileSha256)
         {
             this.byName = byName;
+            FileSha256 = fileSha256;
         }
+
+        /// <summary>The sha256 of the graph the thresholds belong to.</summary>
+        public string ModelSha256 => byName.ModelSha256;
+
+        /// <summary>The sha256 of the thresholds file itself.</summary>
+        public string FileSha256 { get; }
+
+        /// <summary>Whether the name is censored whatever the model's score.</summary>
+        public bool CensorsAlways(string nameId) =>
+            byName.TryGet(nameId, out double censorAt, out _) && double.IsNegativeInfinity(censorAt);
 
         public Verdict Decide(string nameId, float logit)
         {
@@ -50,7 +61,7 @@ namespace Genizah.Scanning
             string path = Path.Combine(ModelLoader.ModelDir, "thresholds.json");
             try
             {
-                return new Thresholds(NameThresholds.Load(path));
+                return new Thresholds(NameThresholds.Load(path), Contributions.Sha256Hex(File.ReadAllBytes(path)));
             }
             catch (FileNotFoundException)
             {

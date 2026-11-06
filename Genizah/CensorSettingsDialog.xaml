@@ -84,6 +84,14 @@
                               ToolTip="בכל הפעלה של Word, בדוק אם יש גרסה חדשה והתקן אותה ברקע. היא תפעל מההפעלה הבאה."/>
                     <TextBlock x:Name="updateStatus" Foreground="{StaticResource SecondaryText}"
                                Margin="20,4,0,0" MaxWidth="320" HorizontalAlignment="Left" TextWrapping="Wrap"/>
+                    <StackPanel x:Name="contributions" Margin="0,10,0,0">
+                        <CheckBox x:Name="offerContributions" FontSize="13" VerticalContentAlignment="Center"
+                                  Content="הצע לשלוח את ההכרעות שלי לשיפור המודל"
+                                  ToolTip="בסיום סקירה, גניזה תציע לשלוח את ההכרעות שלך על שמות שהמודל לא היה בטוח בהם או שתיקנת. דבר אינו נשלח בלי אישורך."/>
+                        <TextBlock x:Name="deleteContributions" Margin="20,4,0,0">
+                            <Hyperlink Click="DeleteContributions_Click" Foreground="{StaticResource Accent}">מחק את ההכרעות ששלחתי</Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
                     <TextBlock Margin="0,12,0,0">
                         <Hyperlink Click="About_Click" Foreground="{StaticResource Accent}">על אודות התוסף</Hyperlink>
                     </TextBlock>

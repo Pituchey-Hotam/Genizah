@@ -21,6 +21,25 @@ namespace Genizah.Core
     }
 
     /// <summary>
+    /// The normalized text a candidate's input is built from: up to <see cref="WindowEncoder.Side"/>
+    /// characters on each side of the target. It is all of the document a contribution sends
+    /// (<see cref="Contributions"/>).
+    /// </summary>
+    public sealed class ModelWindow
+    {
+        public ModelWindow(string left, string target, string right)
+        {
+            Left = left;
+            Target = target;
+            Right = right;
+        }
+
+        public string Left { get; }
+        public string Target { get; }
+        public string Right { get; }
+    }
+
+    /// <summary>
     /// Builds the classifier's input for one candidate, as training did (its
     /// encode_rows): the window normalize(left)[-32:] + target + normalize(right)[:32],
     /// tokenized, [CLS] ... [SEP] cut to 128 ids, and a target mask over every piece whose
@@ -42,15 +61,21 @@ namespace Genizah.Core
         }
 
         /// <summary>A candidate found by <see cref="NameFinder"/> in <paramref name="normalized"/>.</summary>
-        public ModelInput Encode(string normalized, NameCandidate candidate)
+        public ModelInput Encode(string normalized, NameCandidate candidate) => Encode(Window(normalized, candidate));
+
+        /// <summary>The window of a candidate found by <see cref="NameFinder"/> in <paramref name="normalized"/>.</summary>
+        public static ModelWindow Window(string normalized, NameCandidate candidate)
         {
             // Normalization is idempotent, so slicing the normalized document gives what
             // normalizing the raw context on each side would.
             int leftStart = Math.Max(0, candidate.Start - Side);
             string left = normalized.Substring(leftStart, candidate.Start - leftStart);
             string right = normalized.Substring(candidate.End, Math.Min(Side, normalized.Length - candidate.End));
-            return EncodeWindow(left, candidate.Text, right);
+            return new ModelWindow(left, candidate.Text, right);
         }
+
+        /// <summary>A window from <see cref="Window"/>.</summary>
+        public ModelInput Encode(ModelWindow window) => EncodeWindow(window.Left, window.Target, window.Right);
 
         /// <summary>A training-style row: raw left context, target, raw right context.</summary>
         public ModelInput Encode(string rawLeft, string target, string rawRight)

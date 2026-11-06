@@ -100,6 +100,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel x:Name="reviewHeader" Margin="12,10,12,8">
@@ -177,7 +178,20 @@
                            TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
-        <Border x:Name="scanFooter" Grid.Row="3" BorderBrush="{StaticResource Divider}"
+        <!-- After a review: the offer to send the user's decisions, and how sending went. -->
+        <Border x:Name="contributePanel" Grid.Row="3" BorderBrush="{StaticResource Divider}"
+                BorderThickness="0,1,0,0" Padding="12,8" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock x:Name="contributeText" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="contributeSend" Style="{StaticResource PrimaryButton}" Click="ContributeSend_Click"/>
+                    <Button x:Name="contributeShow" Content="הצג מה יישלח" Style="{StaticResource FlatButton}"
+                            Click="ContributeShow_Click"/>
+                    <Button x:Name="contributeClose" Style="{StaticResource FlatButton}" Click="ContributeClose_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border x:Name="scanFooter" Grid.Row="4" BorderBrush="{StaticResource Divider}"
                 BorderThickness="0,1,0,0" Padding="8,4">
             <Button x:Name="scanButton" Content="סרוק שוב" Style="{StaticResource FlatButton}"
                     HorizontalAlignment="Right" Click="Scan_Click"
