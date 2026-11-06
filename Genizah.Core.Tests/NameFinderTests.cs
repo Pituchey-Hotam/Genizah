@@ -40,5 +40,30 @@ namespace Genizah.Core.Tests
         {
             Assert.Equal(new[] { expected }, Find(raw));
         }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("הילד הלך לחנות וקנה לחם וחלב.")]
+        [InlineData("האות אל\"ף")]
+        [InlineData("הילד הלך אל החנות")]
+        [InlineData("p יהוה tail")]
+        public void HasCandidateAgreesWithFind(string raw)
+        {
+            string normalized = TextNormalizer.Normalize(raw);
+            Assert.Equal(NameFinder.Find(normalized).Count > 0, NameFinder.HasCandidate(normalized));
+        }
+
+        [Theory]
+        [MemberData(nameof(PipelineTests.Cases), MemberType = typeof(PipelineTests))]
+        public void HasCandidateAgreesWithFindOnEveryVector(string name)
+        {
+            using (var doc = TestData.Json(TestData.TestDataPath("pipeline.json")))
+            {
+                string raw = doc.RootElement.GetProperty("cases").EnumerateArray()
+                    .Single(c => c.GetProperty("case").GetString() == name).GetProperty("text").GetString();
+                string normalized = TextNormalizer.Normalize(raw);
+                Assert.Equal(NameFinder.Find(normalized).Count > 0, NameFinder.HasCandidate(normalized));
+            }
+        }
     }
 }

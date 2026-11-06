@@ -124,6 +124,19 @@ try{
     Assert $actual.cancelled 'Closing the print-choice dialog cancels printing'
     $doc.Close([ref]$dontSave)
 
+    $doc=$word.Documents.Add();$doc.Content.Text=('הילד הלך לחנות וקנה לחם וחלב. '*4000);$hwnd=$doc.ActiveWindow.Hwnd
+    $doc.UndoClear();$doc.Saved=$true
+    $probe=Print-Probe $hwnd 2
+    Assert ($probe.status -eq 'NoCandidates' -and -not $probe.cancelled) 'Unreviewed document with no candidates prints without any prompt'
+    Assert ($doc.Saved -and -not $doc.Undo()) 'Candidate check leaves the document saved and undo history untouched'
+    Assert ($probe.elapsed_ms -lt 1000) "Candidate check is quick on $($doc.Content.Text.Length) characters ($($probe.elapsed_ms) ms)"
+    Assert ((Windows).Count -eq 0) 'Candidate check creates no pane or scan'
+    $name=[string][char]0x05D9+[char]0x05D4+[char]0x05D5+[char]0x05D4
+    $doc.Sections[1].Headers[1].Range.Text=$name
+    $probe=Print-Probe $hwnd 2
+    Assert ($probe.status -eq 'Unreviewed' -and $probe.cancelled) 'A name only in the header still prompts'
+    $doc.Close([ref]$dontSave)
+
     $doc=$word.Documents.Add();$doc.Content.Text='Ordinary candidate-free text.';$hwnd=$doc.ActiveWindow.Hwnd
     Open-Review $hwnd
     $state=Wait-Scan $hwnd

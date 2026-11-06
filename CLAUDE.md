@@ -57,8 +57,11 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     external text changes invalidate print-review freshness until a fresh scan.
     The ribbon starts a scan on first opening, then reopens this window's existing review
     or progress. A compact footer action explicitly rescans, including after a clean scan. Printing
-    compares cached review snapshots and offers a choice through `PrintReviewDialog`; it never
-    runs inference or walks Word result ranges. Check first cancels printing and schedules a scan.
+    reads the printed text, compares it with cached review snapshots and, with no current review,
+    asks only if `NameFinder.HasCandidate` finds a name (the scan scores only what the finder
+    finds); it offers a choice through `PrintReviewDialog`, and never runs inference or walks Word
+    result ranges. Check first cancels printing and schedules a scan. `ReadText` restores
+    `Saved`: reading an existing empty header's `Range` marks the document unsaved.
   - `CensorSettingsDialog.xaml`, `Theme.xaml`, `NameInfo.cs` (per-name display names, base forms
     and replacements). `AboutDialog.xaml`, opened from the settings dialog and by itself on the
     first ribbon click (`about_shown` in the user's settings), holds the halachic disclaimer and
