@@ -128,6 +128,16 @@ namespace Genizah.Core
         private static readonly Regex[] Patterns =
             NameOrder.Select(n => new Regex(PatternSources[n], RegexOptions.CultureInvariant | RegexOptions.Compiled)).ToArray();
 
+        /// <summary>
+        /// Whether <see cref="Find"/> would find any candidate, stopping at the first match: any
+        /// match leaves at least one candidate after overlaps are resolved.
+        /// </summary>
+        public static bool HasCandidate(string normalized)
+        {
+            if (normalized == null) throw new ArgumentNullException(nameof(normalized));
+            return Patterns.Any(p => p.IsMatch(normalized));
+        }
+
         /// <summary>Every candidate in <paramref name="normalized"/>, in text order.</summary>
         public static List<NameCandidate> Find(string normalized)
         {
@@ -144,13 +154,16 @@ namespace Genizah.Core
                 : x.End - x.Start != y.End - y.Start ? (y.End - y.Start).CompareTo(x.End - x.Start)
                 : x.Order.CompareTo(y.Order));
 
+            // Taken spans don't overlap and come in start order, so a hit overlaps one of them
+            // exactly when it starts before the last one ends.
             var taken = new List<NameCandidate>();
+            int takenEnd = int.MinValue;
             foreach (var h in hits)
             {
-                if (taken.Any(t => h.Start < t.End && t.Start < h.End)) continue;
+                if (h.Start < takenEnd) continue;
                 taken.Add(new NameCandidate(h.Start, h.End, NameOrder[h.Order], normalized.Substring(h.Start, h.End - h.Start)));
+                takenEnd = h.End;
             }
-            taken.Sort((x, y) => x.Start.CompareTo(y.Start));
             return taken;
         }
 
