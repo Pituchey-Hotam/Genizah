@@ -27,6 +27,8 @@ namespace Genizah
             checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
             offerContributions.IsChecked = AddInSettings.Current.OfferContributions;
             offerContributions.Loaded += (s, e) => UnmirrorCheckMark(offerContributions);
+            shareAutomatically.IsChecked = AddInSettings.Current.ShareAutomatically;
+            shareAutomatically.Loaded += (s, e) => UnmirrorCheckMark(shareAutomatically);
             // Until there's a server to send to, there's nothing to offer.
             contributions.Visibility = Contributing.Endpoint == null ? Visibility.Collapsed : Visibility.Visible;
             deleteContributions.Visibility = string.IsNullOrEmpty(AddInSettings.Current.InstallId) ? Visibility.Collapsed : Visibility.Visible;
@@ -88,6 +90,7 @@ namespace Genizah
             AddInSettings.Current.CheckForUpdates = checkForUpdates.IsChecked == true;
             AddInSettings.Current.CheckBeforePrinting = checkBeforePrinting.IsChecked == true;
             AddInSettings.Current.OfferContributions = offerContributions.IsChecked == true;
+            AddInSettings.Current.ShareAutomatically = shareAutomatically.IsChecked == true;
             try
             {
                 AddInSettings.Save();
@@ -104,7 +107,7 @@ namespace Genizah
 
         private async void DeleteContributions_Click(object sender, RoutedEventArgs e)
         {
-            if (Ask("למחוק מהשרת את כל ההכרעות ששלחת מהמחשב הזה?", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (Ask("למחוק מהשרת את כל ההכרעות ששיתפת מהמחשב הזה?", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
             deleteContributions.IsEnabled = false;
             try

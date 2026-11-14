@@ -28,6 +28,12 @@ namespace Genizah.Core
         /// <summary>Whether the review pane offers, after a review, to send the user's decisions (<see cref="Contributions"/>).</summary>
         [DataMember(Name = "offer_contributions")] public bool OfferContributions { get; set; }
 
+        /// <summary>Whether a finished review shares its decisions without asking; chosen by the user, never by default.</summary>
+        [DataMember(Name = "share_automatically")] public bool ShareAutomatically { get; set; }
+
+        /// <summary>Whether the reporting link's one-time highlight has been shown.</summary>
+        [DataMember(Name = "contribution_hint_shown")] public bool ContributionHintShown { get; set; }
+
         /// <summary>The random id the user's contributions are sent under, or empty before the first.</summary>
         [DataMember(Name = "install_id")] public string InstallId { get; set; }
 
@@ -54,6 +60,7 @@ namespace Genizah.Core
             CheckBeforePrinting = true;
             AboutShown = false;
             OfferContributions = true;
+            ShareAutomatically = false;
             InstallId = "";
         }
 

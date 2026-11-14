@@ -68,9 +68,16 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     the credits; keep its credits in step with `NOTICE`.
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
     (`Genizah.Core/UserSettings`), shared by every version and Word build.
-  - `Contributing`, `ContributeDialog.xaml`: the opt-out offer, once a review has nothing
-    pending, to send the user's decisions to the collection server (README, "Sharing
-    decisions"). A record is sent only for a decision made in the pane (`SearchResult.Revisions`)
+  - `Contributing`, `ContributeDialog.xaml`: whenever there are eligible unsent decisions, a link in the
+    pane's footer offers to share the user's decisions with the
+    collection server (README, "Sharing decisions"); it sits beside rescan on the same row.
+    The action reads "דווח טעות אחת" or "דווח N טעויות". After the first report, a small "הצג"
+    link opens the record-by-record dialog. The first visible offer before reporting gets a
+    gentle blue highlight that fades out (`contribution_hint_shown`, once per installation).
+    Closing the pane never opens an explanation. Until the user first
+    shares (`Contributing.Explained`: an install id exists), the link opens a popup explaining
+    sharing, with the record-by-record `ContributeDialog` and a "share automatically" box
+    (`share_automatically`, off by default); after that it sends directly. A record is sent only for a decision made in the pane (`SearchResult.Revisions`)
     that answers an ask or reverses the model, never one reversing a `censor_always` name; its
     text is only the model's window (`ModelWindow`, from `WindowEncoder.Window`, the same slicing
     the scan encodes). A failed send keeps its batch and ids for the retry, which the server

@@ -86,10 +86,13 @@
                                Margin="20,4,0,0" MaxWidth="320" HorizontalAlignment="Left" TextWrapping="Wrap"/>
                     <StackPanel x:Name="contributions" Margin="0,10,0,0">
                         <CheckBox x:Name="offerContributions" FontSize="13" VerticalContentAlignment="Center"
-                                  Content="הצע לשלוח את ההכרעות שלי לשיפור המודל"
-                                  ToolTip="בסיום סקירה, גניזה תציע לשלוח את ההכרעות שלך על שמות שהמודל לא היה בטוח בהם או שתיקנת. דבר אינו נשלח בלי אישורך."/>
+                                  Content="הצע לשתף את ההכרעות שלי, כדי לשפר את הדיוק של גניזה"
+                                  ToolTip="בסיום סקירה, גניזה תציע לשתף את ההכרעות שלך על שמות שהמודל לא היה בטוח בהם או שתיקנת: כמה מילים סביב כל שם."/>
+                        <CheckBox x:Name="shareAutomatically" Margin="20,6,0,0" VerticalContentAlignment="Center"
+                                  IsEnabled="{Binding IsChecked, ElementName=offerContributions}"
+                                  Content="שתף אוטומטית בסיום כל סקירה, בלי לשאול"/>
                         <TextBlock x:Name="deleteContributions" Margin="20,4,0,0">
-                            <Hyperlink Click="DeleteContributions_Click" Foreground="{StaticResource Accent}">מחק את ההכרעות ששלחתי</Hyperlink>
+                            <Hyperlink Click="DeleteContributions_Click" Foreground="{StaticResource Accent}">מחק את כל ההכרעות ששיתפתי בעבר</Hyperlink>
                         </TextBlock>
                     </StackPanel>
                     <TextBlock Margin="0,12,0,0">

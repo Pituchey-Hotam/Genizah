@@ -44,6 +44,12 @@ namespace Genizah
         /// <summary>Whether the pane offers to send decisions at all.</summary>
         public static bool Offered => Endpoint != null && AddInSettings.Current.OfferContributions;
 
+        /// <summary>
+        /// Whether the user has shared before, and so has seen what sharing is: until then the
+        /// share link explains first. Deleting what was shared starts over.
+        /// </summary>
+        public static bool Explained => !string.IsNullOrEmpty(AddInSettings.Current.InstallId);
+
         public static SentLog Sent => sent ?? (sent = SentLog.Load(SentLogPath));
 
         private static HttpClient Http

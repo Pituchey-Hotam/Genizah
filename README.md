@@ -28,7 +28,7 @@ automatically), <strong>להשאיר</strong> (left unchanged), or <strong>לא 
 decision). Select a row to jump to its place in the document, then choose <strong>צנזר</strong>
 or <strong>השאר</strong>. You can change any decision and restore censored names.</p>
 <a href="docs/images/review-ask.png"><img src="docs/images/review-ask.png" alt="Deciding an uncertain name" width="520"></a>
-<p><strong>Share your decisions, if you want to.</strong> Once nothing is left to decide, the
+<p><strong>Share your decisions, if you want to.</strong> Whenever there are decisions to share, the
 pane offers to send your decisions on uncertain names, and on any you reversed, to help train
 the model. See <a href="#sharing-decisions">what is sent</a>.</p>
 <p><strong>Print with a final check.</strong> If names still need a decision, or the document
@@ -54,10 +54,14 @@ updates itself in the background.
 
 ### Sharing decisions
 
-After a review, Genizah offers to send the decisions you made: your answer on each name it
-was unsure about, and each name where you reversed its decision. Nothing is sent unless you
-click **שלח**, and **הצג מה יישלח** shows every record first, so you can leave any of them out.
-For each name, a record holds:
+During a review, a link beside **סרוק שוב** offers to share the decisions you made: your answer
+on each name it was unsure about, and each name where you reversed its decision. The first
+time you click it, it explains what is shared before anything is sent. A brief, one-time
+highlight draws attention to the reporting link when it first becomes available.
+After the first report, the footer's **הצג** link opens the detailed dialog; the introductory popup's **הצג בדיוק מה
+יישלח** shows every record, so you can leave any of them out. Nothing is sent without that
+click, unless you choose to share automatically, there or in the settings. For each name, a
+record holds:
 
 - the text the model read: up to 32 characters on each side of the name, normalized (no
   nikud), and nothing else from the document;
@@ -66,8 +70,8 @@ For each name, a record holds:
 - the add-in's version, the model's, and a random id made for this install.
 
 No document names, paths, or account or computer names are sent, and the server doesn't keep
-your IP address. To stop the offer, clear **הצע לשלוח את ההכרעות שלי לשיפור המודל** in the
-settings. **מחק את ההכרעות ששלחתי** there deletes everything sent from this install.
+your IP address. To stop the offer, clear **הצע לשתף את ההכרעות שלי, כדי שהמודל ישאל פחות** in
+the settings. **מחק את ההכרעות ששיתפתי** there deletes everything shared from this install.
 
 **Genizah is an aid, not a guarantee.** It can censor nondivine words; and in rare cases miss a name.
 Review the results before relying on it.

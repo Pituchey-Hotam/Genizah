@@ -36,6 +36,7 @@ namespace Genizah.Results
         private ContributionBatch failedBatch;
         private string failure;
         private string sentMessage;
+        private bool contributionOfferAvailable;
         /// <summary>Counts scans, so a send that finishes after a new one doesn't report on it.</summary>
         private int generation;
 
@@ -365,61 +366,141 @@ namespace Genizah.Results
         }
 
         /// <summary>
-        /// The decisions to offer: once nothing awaits a decision, those not yet sent or declined.
+        /// The decisions to offer: eligible decisions not yet sent or declined, even during review.
         /// </summary>
         private List<ContributionRecord> Offer()
         {
-            if (thresholds == null || !Contributing.Offered || results.Any(r => !r.IsStale && r.State == ResultState.Pending))
+            if (thresholds == null || !Contributing.Offered)
                 return new List<ContributionRecord>();
             return Contributing.Unsent(results, thresholds).Where(r => !declined.Contains(r.Key)).ToList();
         }
 
+        /// <summary>The explanation the first share link opens, and every later one's tooltip.</summary>
+        private const string ShareExplanation =
+            "שתף את ההכרעות שלך כדי לשפר את התוסף עבור משתמשים אחרים.\n" +
+            "נשלחים רק כמה מילים סביב כל שם, בלי ניקוד, וההכרעה שלך.";
+
         /// <summary>
-        /// Shows the contribution row as things stand: sending, failed, offering the decisions,
-        /// thanking for them, or nothing.
+        /// Shows the footer's share slot as things stand: sending, failed, offering the decisions
+        /// (or, with automatic sharing, sending them), thanking for them, or nothing.
         /// </summary>
         private void UpdateContribution()
         {
+            contributionOfferAvailable = false;
+            contributePreview.Visibility = Visibility.Collapsed;
             List<ContributionRecord> offer = sending || failedBatch != null ? null : Offer();
+            if (offer != null && offer.Count > 0 && AddInSettings.Current.ShareAutomatically)
+            {
+                // Contribute shows its own progress, and updates the slot again when it's done.
+                _ = Contribute(Contributing.NewBatch(offer, thresholds), automatic: true);
+                return;
+            }
             if (sending)
-                ShowContribution("שולח…", null, false, null);
+                ShowContribution(null, "משתף…", null);
             else if (failedBatch != null)
-                ShowContribution(failure, "נסה שוב", false, "לא עכשיו");
+                ShowContribution("נסה שוב", " · השיתוף נכשל", failure);
             else if (offer.Count > 0)
-                ShowContribution(offer.Count == 1
-                    ? "סיימת לסקור. לשלוח את ההכרעה שלך כדי לשפר את המודל? יישלחו רק כמה מילים סביב השם."
-                    : $"סיימת לסקור. לשלוח את {offer.Count} ההכרעות שלך כדי לשפר את המודל? יישלחו רק כמה מילים סביב כל שם.",
-                    "שלח", true, "לא עכשיו");
+            {
+                ShowContribution(
+                    offer.Count == 1 ? "דווח טעות אחת" : $"דווח {offer.Count} טעויות",
+                    "",
+                    ShareExplanation);
+                contributePreview.Visibility = Contributing.Explained ? Visibility.Visible : Visibility.Collapsed;
+                contributionOfferAvailable = true;
+                HighlightContribution();
+            }
             else if (sentMessage != null)
-                ShowContribution(sentMessage, null, false, "סגור");
-            else
-                contributePanel.Visibility = Visibility.Collapsed;
-        }
-
-        private void ShowContribution(string text, string send, bool show, string close)
-        {
-            contributeText.Text = text;
-            contributeSend.Content = send;
-            contributeSend.Visibility = send == null ? Visibility.Collapsed : Visibility.Visible;
-            contributeShow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            contributeClose.Content = close;
-            contributeClose.Visibility = close == null ? Visibility.Collapsed : Visibility.Visible;
-            contributePanel.Visibility = Visibility.Visible;
-        }
-
-        private async void ContributeSend_Click(object sender, RoutedEventArgs e)
-        {
-            if (failedBatch != null)
-                await Contribute(failedBatch);
+                ShowContribution(null, sentMessage, "אפשר לשנות זאת, ולמחוק את מה ששותף, בהגדרות.");
             else
             {
-                List<ContributionRecord> offer = Offer();
-                if (offer.Count > 0) await Contribute(Contributing.NewBatch(offer, thresholds));
+                contributePopup.IsOpen = false;
+                contributeSlot.Visibility = Visibility.Collapsed;
             }
         }
 
+        /// <summary>The share slot: a <paramref name="link"/> (if any) followed by plain <paramref name="status"/>.</summary>
+        private void ShowContribution(string link, string status, string tooltip)
+        {
+            contributeLinkText.Text = link ?? "";
+            contributeLink.IsEnabled = link != null;
+            contributeStatus.Text = link == null ? status.TrimStart(' ', '·') : status;
+            contributeSlot.ToolTip = tooltip;
+            contributeLink.ToolTip = tooltip;
+            contributeSlot.Visibility = Visibility.Visible;
+        }
+
+        private async void ContributeLink_Click(object sender, RoutedEventArgs e)
+        {
+            if (failedBatch != null)
+            {
+                await Contribute(failedBatch);
+                return;
+            }
+            List<ContributionRecord> offer = Offer();
+            if (offer.Count == 0) return;
+            if (Contributing.Explained)
+                await Contribute(Contributing.NewBatch(offer, thresholds));
+            else
+            {
+                OpenContributionIntro();
+            }
+        }
+
+        private void OpenContributionIntro()
+        {
+            shareAutomatically.IsChecked = false;
+            contributePopup.IsOpen = true;
+        }
+
+        private void ContributionSlot_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if ((bool)e.NewValue) HighlightContribution();
+        }
+
+        private void HighlightContribution()
+        {
+            if (!contributionOfferAvailable || !contributeSlot.IsVisible || Contributing.Explained ||
+                AddInSettings.Current.ContributionHintShown) return;
+
+            // Claim the cue before animating, so refreshes and other panes cannot repeat it.
+            AddInSettings.Current.ContributionHintShown = true;
+            try { AddInSettings.Save(); }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) { }
+            if (!SystemParameters.ClientAreaAnimation) return;
+
+            var tint = System.Windows.Media.Color.FromArgb(0, 24, 90, 189);
+            var brush = new System.Windows.Media.SolidColorBrush(tint);
+            contributeLink.Background = brush;
+            var animation = new System.Windows.Media.Animation.ColorAnimationUsingKeyFrames();
+            animation.KeyFrames.Add(new System.Windows.Media.Animation.LinearColorKeyFrame(tint,
+                System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            animation.KeyFrames.Add(new System.Windows.Media.Animation.LinearColorKeyFrame(
+                System.Windows.Media.Color.FromArgb(36, 24, 90, 189),
+                System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.5))));
+            animation.KeyFrames.Add(new System.Windows.Media.Animation.LinearColorKeyFrame(
+                System.Windows.Media.Color.FromArgb(36, 24, 90, 189),
+                System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromSeconds(2.5))));
+            animation.KeyFrames.Add(new System.Windows.Media.Animation.LinearColorKeyFrame(tint,
+                System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromSeconds(3.5))));
+            animation.FillBehavior = System.Windows.Media.Animation.FillBehavior.Stop;
+            brush.BeginAnimation(System.Windows.Media.SolidColorBrush.ColorProperty, animation);
+        }
+
+        private async void ContributePopupSend_Click(object sender, RoutedEventArgs e)
+        {
+            contributePopup.IsOpen = false;
+            List<ContributionRecord> offer = Offer();
+            if (offer.Count == 0) return;
+            KeepAutomaticChoice();
+            await Contribute(Contributing.NewBatch(offer, thresholds));
+        }
+
+        private void ContributePopupClose_Click(object sender, RoutedEventArgs e) => contributePopup.IsOpen = false;
+
+        /// <summary>Shows exactly what would be sent, record by record, and sends the ones the user keeps.</summary>
         private async void ContributeShow_Click(object sender, RoutedEventArgs e)
         {
+            contributePopup.IsOpen = false;
             List<ContributionRecord> offer = Offer();
             if (offer.Count == 0) return;
             var dialog = new ContributeDialog(offer);
@@ -427,21 +508,29 @@ namespace Genizah.Results
             List<ContributionRecord> chosen = dialog.Chosen;
             declined.UnionWith(offer.Except(chosen).Select(r => r.Key));
             if (chosen.Count > 0)
+            {
+                KeepAutomaticChoice();
                 await Contribute(Contributing.NewBatch(chosen, thresholds));
+            }
             else
                 UpdateContribution();
         }
 
-        private void ContributeClose_Click(object sender, RoutedEventArgs e)
+        /// <summary>Saves the popup's "share automatically" box, if the user ticked it.</summary>
+        private void KeepAutomaticChoice()
         {
-            declined.UnionWith(Offer().Select(r => r.Key));
-            failedBatch = null;
-            sentMessage = null;
-            UpdateContribution();
+            if (shareAutomatically.IsChecked != true) return;
+            AddInSettings.Current.ShareAutomatically = true;
+            try { AddInSettings.Save(); }
+            // Then it lasts for this session only.
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) { }
         }
 
+        private void CheckBox_Loaded(object sender, RoutedEventArgs e) =>
+            CensorSettingsDialog.UnmirrorCheckMark((CheckBox)sender);
+
         /// <summary>Sends a batch; on failure, keeps it to retry as it is, so the server can recognize a resend.</summary>
-        private async Task Contribute(ContributionBatch batch)
+        private async Task Contribute(ContributionBatch batch, bool automatic = false)
         {
             int scan = generation;
             sending = true;
@@ -451,15 +540,20 @@ namespace Genizah.Results
             {
                 await Contributing.Send(batch);
                 if (scan == generation)
-                    sentMessage = batch.Records.Count == 1 ? "ההכרעה נשלחה. תודה!" : $"{batch.Records.Count} הכרעות נשלחו. תודה!";
+                {
+                    int n = batch.Records.Count;
+                    sentMessage = automatic
+                        ? (n == 1 ? "✓ ההכרעה שותפה אוטומטית" : $"✓ {n} הכרעות שותפו אוטומטית")
+                        : (n == 1 ? "✓ ההכרעה שותפה. תודה!" : $"✓ {n} הכרעות שותפו. תודה!");
+                }
             }
             catch (ContributionException ex)
             {
-                if (scan == generation) Fail(batch, "השליחה נכשלה: " + ex.Message);
+                if (scan == generation) Fail(batch, ex.Message);
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is IOException)
             {
-                if (scan == generation) Fail(batch, "השליחה נכשלה. אולי אין חיבור לאינטרנט.");
+                if (scan == generation) Fail(batch, "אולי אין חיבור לאינטרנט.");
             }
             finally
             {
