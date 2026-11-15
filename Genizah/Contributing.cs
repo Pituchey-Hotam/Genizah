@@ -16,8 +16,8 @@ namespace Genizah
     /// </summary>
     internal static class Contributing
     {
-        /// <summary>The collection server. Until there is one, nothing is offered.</summary>
-        private const string BuiltInEndpoint = null;
+        /// <summary>The collection server.</summary>
+        private const string BuiltInEndpoint = "https://genizah-collect.michael-elgavi.workers.dev/";
 
         public static readonly string SentLogPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Genizah", "contributed.json");
