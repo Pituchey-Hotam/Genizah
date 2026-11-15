@@ -10,7 +10,8 @@ refer to judges or foreign gods. Genizah uses a completely local AI model traine
 books and modern Torah articles to estimate whether each occurrence is a divine name. It
 changes likely divine names to modified spellings, leaves likely ordinary uses, and asks you
 to review uncertain cases. The model runs entirely on your computer; your text is never sent
-to an external service. Only update checks need an internet connection.
+to an external service unless you choose to [share your decisions](#sharing-decisions). Only
+update checks and that sharing need an internet connection.
 
 ![The review pane beside a document](docs/images/review-pane.png)
 
@@ -27,14 +28,17 @@ automatically), <strong>להשאיר</strong> (left unchanged), or <strong>לא 
 decision). Select a row to jump to its place in the document, then choose <strong>צנזר</strong>
 or <strong>השאר</strong>. You can change any decision and restore censored names.</p>
 <a href="docs/images/review-ask.png"><img src="docs/images/review-ask.png" alt="Deciding an uncertain name" width="520"></a>
+<p><strong>Share your decisions, if you want to.</strong> Whenever there are decisions to share, the
+pane offers to send your decisions on uncertain names, and on any you reversed, to help train
+the model. See <a href="#sharing-decisions">what is sent</a>.</p>
 <p><strong>Print with a final check.</strong> If names still need a decision, or the document
 hasn't been reviewed, Genizah asks before printing.</p>
 <a href="docs/images/print-check.png"><img src="docs/images/print-check.png" alt="The check before printing" width="520"></a>
 </td>
 <td width="35%" valign="top">
 <p><strong>Choose your settings.</strong> Open the small arrow in the <strong>גניזה</strong>
-ribbon group to choose each name's spelling, toggle print checks and automatic updates,
-and see the installed version and update status.</p>
+ribbon group to choose each name's spelling, toggle print checks, automatic updates and the
+offer to share decisions, and see the installed version and update status.</p>
 <a href="docs/images/settings.png"><img src="docs/images/settings.png" alt="The settings dialog" width="260"></a>
 </td>
 </tr>
@@ -47,6 +51,27 @@ Download `Genizah-Setup-<version>.exe` from the
 needs Word for Windows (64-bit). The model is included and runs on your own computer, so your
 documents never leave it and no internet connection is needed. When one is available, Genizah
 updates itself in the background.
+
+### Sharing decisions
+
+During a review, a link beside **סרוק שוב** offers to share the decisions you made: your answer
+on each name it was unsure about, and each name where you reversed its decision. The first
+time you click it, it explains what is shared before anything is sent. A brief, one-time
+highlight draws attention to the reporting link when it first becomes available.
+After the first report, the footer's **הצג** link opens the detailed dialog; the introductory popup's **הצג בדיוק מה
+יישלח** shows every record, so you can leave any of them out. Nothing is sent without that
+click, unless you choose to share automatically, there or in the settings. For each name, a
+record holds:
+
+- the text the model read: up to 32 characters on each side of the name, normalized (no
+  nikud), and nothing else from the document;
+- your decision, the model's score and verdict, how many times you changed your mind, and
+  how long you took;
+- the add-in's version, the model's, and a random id made for this install.
+
+No document names, paths, or account or computer names are sent, and the server doesn't keep
+your IP address. To stop the offer, clear **הצע לשתף את ההכרעות שלי, כדי שהמודל ישאל פחות** in
+the settings. **מחק את ההכרעות ששיתפתי** there deletes everything shared from this install.
 
 **Genizah is an aid, not a guarantee.** It can censor nondivine words; and in rare cases miss a name.
 Review the results before relying on it.

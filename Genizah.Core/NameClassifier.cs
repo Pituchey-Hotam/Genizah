@@ -8,9 +8,10 @@ namespace Genizah.Core
     /// <summary>A candidate with the model's verdict and where it sits in the raw text.</summary>
     public sealed class ScoredCandidate
     {
-        public ScoredCandidate(NameCandidate candidate, int rawStart, int rawEnd, float logit)
+        public ScoredCandidate(NameCandidate candidate, int rawStart, int rawEnd, float logit, ModelWindow window)
         {
             Candidate = candidate;
+            Window = window;
             RawStart = rawStart;
             RawEnd = rawEnd;
             Logit = logit;
@@ -22,6 +23,9 @@ namespace Genizah.Core
         /// <summary>The raw span [RawStart, RawEnd), widened over trailing nikud (<see cref="NormalizedText.ToRaw"/>).</summary>
         public int RawStart { get; }
         public int RawEnd { get; }
+
+        /// <summary>The normalized text the model scored.</summary>
+        public ModelWindow Window { get; }
 
         /// <summary>The model's raw output: positive means censor. Uncalibrated.</summary>
         public float Logit { get; }
@@ -95,7 +99,8 @@ namespace Genizah.Core
             foreach (var c in found)
             {
                 norm.ToRaw(c.Start, c.End, out int rawStart, out int rawEnd);
-                yield return new ScoredCandidate(c, rawStart, rawEnd, Score(encoder.Encode(norm.Text, c)));
+                ModelWindow window = WindowEncoder.Window(norm.Text, c);
+                yield return new ScoredCandidate(c, rawStart, rawEnd, Score(encoder.Encode(window)), window);
             }
         }
 

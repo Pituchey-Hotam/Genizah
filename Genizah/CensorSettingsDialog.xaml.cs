@@ -11,7 +11,7 @@ using Genizah.Core;
 namespace Genizah
 {
     /// <summary>
-    /// The add-in's settings: replacements, print checks and automatic updates.
+    /// The add-in's settings: replacements, print checks, automatic updates and contributions.
     /// </summary>
     public partial class CensorSettingsDialog : Window
     {
@@ -25,6 +25,13 @@ namespace Genizah
             checkBeforePrinting.IsChecked = AddInSettings.Current.CheckBeforePrinting;
             checkBeforePrinting.Loaded += (s, e) => UnmirrorCheckMark(checkBeforePrinting);
             checkForUpdates.Loaded += (s, e) => UnmirrorCheckMark(checkForUpdates);
+            offerContributions.IsChecked = AddInSettings.Current.OfferContributions;
+            offerContributions.Loaded += (s, e) => UnmirrorCheckMark(offerContributions);
+            shareAutomatically.IsChecked = AddInSettings.Current.ShareAutomatically;
+            shareAutomatically.Loaded += (s, e) => UnmirrorCheckMark(shareAutomatically);
+            // Until there's a server to send to, there's nothing to offer.
+            contributions.Visibility = Contributing.Endpoint == null ? Visibility.Collapsed : Visibility.Visible;
+            deleteContributions.Visibility = string.IsNullOrEmpty(AddInSettings.Current.InstallId) ? Visibility.Collapsed : Visibility.Visible;
             updateStatus.Text = UpdateStatus();
             updateStatus.ToolTip = "פרטים: " + Updater.LogPath;
         }
@@ -50,7 +57,7 @@ namespace Genizah
         /// Right-to-left mirrors the whole check box, its check mark included. Its glyph alone goes
         /// back to left-to-right, which undoes the mirroring; the box stays on the text's right.
         /// </summary>
-        private static void UnmirrorCheckMark(System.Windows.Controls.CheckBox box)
+        internal static void UnmirrorCheckMark(System.Windows.Controls.CheckBox box)
         {
             box.ApplyTemplate();
             // The glyph's grid in WPF's own templates; another theme may have none.
@@ -82,6 +89,8 @@ namespace Genizah
                 row.Name.setSelectedReplacement(row.Replacement.Trim());
             AddInSettings.Current.CheckForUpdates = checkForUpdates.IsChecked == true;
             AddInSettings.Current.CheckBeforePrinting = checkBeforePrinting.IsChecked == true;
+            AddInSettings.Current.OfferContributions = offerContributions.IsChecked == true;
+            AddInSettings.Current.ShareAutomatically = shareAutomatically.IsChecked == true;
             try
             {
                 AddInSettings.Save();
@@ -95,6 +104,33 @@ namespace Genizah
             }
             DialogResult = true;
         }
+
+        private async void DeleteContributions_Click(object sender, RoutedEventArgs e)
+        {
+            if (Ask("למחוק מהשרת את כל ההכרעות ששיתפת מהמחשב הזה?", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+            deleteContributions.IsEnabled = false;
+            try
+            {
+                ContributionDeletion deleted = await Contributing.DeleteAll();
+                deleteContributions.Visibility = Visibility.Collapsed;
+                Ask(deleted.Records == 0 ? "לא נמצאו הכרעות למחיקה." : $"נמחקו {deleted.Records} הכרעות.",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex) when (ex is ContributionException || ex is System.Net.Http.HttpRequestException
+                                       || ex is System.Threading.Tasks.TaskCanceledException || ex is IOException)
+            {
+                Ask("המחיקה נכשלה: " + ex.Message, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                deleteContributions.IsEnabled = true;
+            }
+        }
+
+        private MessageBoxResult Ask(string text, MessageBoxButton buttons, MessageBoxImage image) =>
+            MessageBox.Show(this, text, Title, buttons, image, MessageBoxResult.None,
+                            MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign);
 
         private void About_Click(object sender, RoutedEventArgs e)
         {

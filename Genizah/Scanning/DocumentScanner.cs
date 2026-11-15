@@ -21,11 +21,14 @@ namespace Genizah.Scanning
 
         /// <summary>
         /// The text of every story Word prints (<see cref="PrintedStories"/>), in that order,
-        /// joined by <see cref="StoryBreak"/>.
+        /// joined by <see cref="StoryBreak"/>. Leaves the document saved if it was: reading an
+        /// existing empty header's Range marks it unsaved, so printing would then ask to save.
         /// </summary>
         public static string ReadText(Word.Document doc)
         {
-            return string.Join(StoryBreak.ToString(), PrintedStories(doc).Select(StoryText));
+            bool saved = doc.Saved;
+            try { return string.Join(StoryBreak.ToString(), PrintedStories(doc).Select(StoryText)); }
+            finally { if (saved && !doc.Saved) doc.Saved = true; }
         }
 
         /// <summary>

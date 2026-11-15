@@ -1,0 +1,49 @@
+# Snapshots every release asset's download count to downloads.csv on the stats branch,
+# which shares no history with develop or master. GitHub's counts are cumulative, so the
+# difference between two snapshots is that period's downloads. Genizah-Setup-*.exe counts
+# installer downloads; a release's Genizah.dll.manifest, installs that updated to it; the
+# latest release's Genizah.vsto, Word sessions with updates on (every check fetches it).
+# GitHub disables schedules after 60 days without repository activity.
+name: Download stats
+
+on:
+  schedule:
+    - cron: '0 6 * * 1,3,5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Switch to stats
+        run: |
+          if git ls-remote --exit-code --heads origin stats; then
+            git fetch --depth=1 origin stats
+            git switch -C stats FETCH_HEAD
+          else
+            git switch --orphan stats
+            echo 'date,release,asset,downloads' > downloads.csv
+          fi
+
+      - name: Snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          date=$(date -u +%F)
+          gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | .tag_name as \$t | .assets[] | [\"$date\", \$t, .name, .download_count] | @csv" \
+            >> downloads.csv
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads.csv
+          git commit -m "Download counts $date"
+          git push origin stats

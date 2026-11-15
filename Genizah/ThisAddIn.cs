@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -50,6 +50,8 @@ namespace Genizah
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             // Off the UI thread, so the first scan doesn't wait for it.
             ModelLoader.StartLoading();
+            // Compiles the finder's patterns now, not in the first print's candidate check.
+            _ = Task.Run(() => NameFinder.HasCandidate(""));
             _ = Updater.CheckAsync(version => UiContext.Post(_ => AnnounceUpdate(version), null));
         }
 
@@ -75,7 +77,7 @@ namespace Genizah
             RemoveClosedWindows();
             if (windows.TryGetValue(window.Hwnd, out var state)) return state;
             state = new WindowResults { Document = window.Document };
-            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
+            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות גניזה", window);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
             state.Control.ReviewRequested += (sender, args) => ReconcileDocument(state.Document);
             state.Control.ScanRequested += (sender, args) => CensorNames(state.Document, window: window);
@@ -185,17 +187,21 @@ namespace Genizah
             pending = 0;
             review = windows.Values.FirstOrDefault(state => state.Document == doc && state.Scanning);
             if (review != null) return PrintReviewStatus.Scanning;
-            var possible = windows.Values.Where(state => state.Document == doc
-                && !state.ReviewInvalidated && state.ReviewedText != null
-                && !state.ResultsList.Any(result => result.IsStale)).ToList();
-            if (possible.Count == 0) return PrintReviewStatus.Unreviewed;
-            // Read text only when there is a potentially current review to verify.
-            // No model work or Word range walk is allowed in this hook.
+            // No model work or Word range walk is allowed in this hook: only reading the printed
+            // text, comparing it with cached reviews, and the candidate finder.
             string text = DocumentScanner.ReadText(doc);
-            review = possible.FirstOrDefault(state => state.ReviewedText == text);
-            if (review == null) return PrintReviewStatus.Unreviewed;
-            pending = review.ResultsList.Count(result => result.State == ResultState.Pending);
-            return pending == 0 ? PrintReviewStatus.Current : PrintReviewStatus.Pending;
+            review = windows.Values.FirstOrDefault(state => state.Document == doc
+                && !state.ReviewInvalidated && state.ReviewedText == text
+                && !state.ResultsList.Any(result => result.IsStale));
+            if (review != null)
+            {
+                pending = review.ResultsList.Count(result => result.State == ResultState.Pending);
+                return pending == 0 ? PrintReviewStatus.Current : PrintReviewStatus.Pending;
+            }
+            // A scan scores only what the finder finds, so with no candidates it would list nothing.
+            return NameFinder.HasCandidate(TextNormalizer.Normalize(text))
+                ? PrintReviewStatus.Unreviewed
+                : PrintReviewStatus.NoCandidates;
         }
 
         private void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
@@ -207,7 +213,7 @@ namespace Genizah
 #if DEBUG
                 lastPrintStatus = status;
 #endif
-                if (status == PrintReviewStatus.Current) return;
+                if (status == PrintReviewStatus.Current || status == PrintReviewStatus.NoCandidates) return;
                 var window = doc.ActiveWindow;
                 var reviewWindow = review == null ? window : (Word.Window)review.Pane.Window;
 #if DEBUG
@@ -306,7 +312,7 @@ namespace Genizah
                     await ApplyResults(state, doc, text, scored, thresholds, timings);
                     string shown = string.Join("\n", new[] { problem, notice, updateNotice }.Where(s => s != null));
                     using (timings.Measure("pane"))
-                        state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown);
+                        state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown, thresholds);
                     state.HasCompletedReview = true;
                 }
             }
@@ -392,7 +398,7 @@ namespace Genizah
                     SearchResult result;
                     using (timings.Measure("new_result"))
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
-                                                  thresholds?.Probability(s.Logit), verdict, before, after);
+                                                  verdict, s.Window, before, after);
                     state.ResultsList.Add(result);
                     if (WordText.ToUnicode(result.OriginalText) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
@@ -485,9 +491,9 @@ namespace Genizah
                     var state = GetResults(window);
                     ClearResults(state);
                     state.ResultsList.Add(new SearchResult(window.Document, window.Document.Range(start, end),
-                        NameInfo.ById("havaya"), 0, null, leave ? Verdict.Leave : Verdict.Ask, "", ""));
+                        NameInfo.ById("havaya"), 0, leave ? Verdict.Leave : Verdict.Ask, null, "", ""));
                     state.Pane.Visible = true;
-                    state.Control.ShowSearchResults(state.ResultsList, null);
+                    state.Control.ShowSearchResults(state.ResultsList, null, null);
                     state.HasCompletedReview = true;
                     RecordReview(state, true);
                     return;
