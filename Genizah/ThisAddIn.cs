@@ -50,6 +50,8 @@ namespace Genizah
             Application.DocumentBeforePrint += new Word.ApplicationEvents4_DocumentBeforePrintEventHandler(Application_DocumentBeforePrint);
             // Off the UI thread, so the first scan doesn't wait for it.
             ModelLoader.StartLoading();
+            // Compiles the finder's patterns now, not in the first print's candidate check.
+            _ = Task.Run(() => NameFinder.HasCandidate(""));
             _ = Updater.CheckAsync(version => UiContext.Post(_ => AnnounceUpdate(version), null));
         }
 
@@ -185,17 +187,21 @@ namespace Genizah
             pending = 0;
             review = windows.Values.FirstOrDefault(state => state.Document == doc && state.Scanning);
             if (review != null) return PrintReviewStatus.Scanning;
-            var possible = windows.Values.Where(state => state.Document == doc
-                && !state.ReviewInvalidated && state.ReviewedText != null
-                && !state.ResultsList.Any(result => result.IsStale)).ToList();
-            if (possible.Count == 0) return PrintReviewStatus.Unreviewed;
-            // Read text only when there is a potentially current review to verify.
-            // No model work or Word range walk is allowed in this hook.
+            // No model work or Word range walk is allowed in this hook: only reading the printed
+            // text, comparing it with cached reviews, and the candidate finder.
             string text = DocumentScanner.ReadText(doc);
-            review = possible.FirstOrDefault(state => state.ReviewedText == text);
-            if (review == null) return PrintReviewStatus.Unreviewed;
-            pending = review.ResultsList.Count(result => result.State == ResultState.Pending);
-            return pending == 0 ? PrintReviewStatus.Current : PrintReviewStatus.Pending;
+            review = windows.Values.FirstOrDefault(state => state.Document == doc
+                && !state.ReviewInvalidated && state.ReviewedText == text
+                && !state.ResultsList.Any(result => result.IsStale));
+            if (review != null)
+            {
+                pending = review.ResultsList.Count(result => result.State == ResultState.Pending);
+                return pending == 0 ? PrintReviewStatus.Current : PrintReviewStatus.Pending;
+            }
+            // A scan scores only what the finder finds, so with no candidates it would list nothing.
+            return NameFinder.HasCandidate(TextNormalizer.Normalize(text))
+                ? PrintReviewStatus.Unreviewed
+                : PrintReviewStatus.NoCandidates;
         }
 
         private void Application_DocumentBeforePrint(Word.Document doc, ref bool cancel)
@@ -207,7 +213,7 @@ namespace Genizah
 #if DEBUG
                 lastPrintStatus = status;
 #endif
-                if (status == PrintReviewStatus.Current) return;
+                if (status == PrintReviewStatus.Current || status == PrintReviewStatus.NoCandidates) return;
                 var window = doc.ActiveWindow;
                 var reviewWindow = review == null ? window : (Word.Window)review.Pane.Window;
 #if DEBUG

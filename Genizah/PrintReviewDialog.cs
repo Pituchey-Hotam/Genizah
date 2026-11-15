@@ -8,7 +8,11 @@ using Word = Microsoft.Office.Interop.Word;
 namespace Genizah
 {
     internal enum PrintReviewChoice { Print, Review, Cancel }
-    internal enum PrintReviewStatus { Current, Pending, Unreviewed, Scanning }
+    /// <summary>
+    /// Why printing does or doesn't ask: <see cref="Current"/> and <see cref="NoCandidates"/>
+    /// (no review, but the candidate finder finds no name to review) print without asking.
+    /// </summary>
+    internal enum PrintReviewStatus { Current, Pending, Unreviewed, Scanning, NoCandidates }
 
     /// <summary>An explicit choice; opening this dialog never runs a classifier.</summary>
     internal sealed class PrintReviewDialog : Window
