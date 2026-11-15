@@ -17,6 +17,17 @@
             <SolidColorBrush x:Key="CensoredMark" Color="#3CB043"/>
             <SolidColorBrush x:Key="LeftMark" Color="#A19F9D"/>
             <BooleanToVisibilityConverter x:Key="Visible"/>
+            <Style x:Key="ShortcutKey" TargetType="Border">
+                <Setter Property="MinWidth" Value="14"/>
+                <Setter Property="Height" Value="15"/>
+                <Setter Property="Padding" Value="1,0"/>
+                <Setter Property="BorderBrush" Value="{StaticResource ButtonBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="2"/>
+                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="TextElement.FontSize" Value="11"/>
+            </Style>
 
             <Style x:Key="Row" TargetType="ListBoxItem">
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -158,8 +169,10 @@
                     <Run Text="{Binding ContextBefore, Mode=OneWay}"/><Run Text="{Binding Name, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding ContextAfter, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding VerdictText}" ToolTip="{Binding ScoreText}" TextWrapping="Wrap"
-                           Foreground="{StaticResource SecondaryText}"/>
+                <TextBlock ToolTip="{Binding ScoreText}" TextWrapping="Wrap"
+                           Foreground="{StaticResource SecondaryText}">
+                    <Run Text="{Binding VerdictText, Mode=OneWay}"/>
+                </TextBlock>
                 <TextBlock Text="{Binding ReplacementText}" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,10"/>
                 <StackPanel Orientation="Horizontal">
                     <Button Content="צנזר" Style="{StaticResource PrimaryButton}" Click="Censor_Click"
@@ -172,16 +185,67 @@
                             ToolTip="בטל צנזור (ה)"
                             Visibility="{Binding CanUndo, Converter={StaticResource Visible}}"/>
                 </StackPanel>
-                <TextBlock Text="מקלדת: ↑↓ מעבר · צ צנזור · ה השארה"
-                           Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
-                           TextWrapping="Wrap"/>
+                <TextBlock Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
+                           TextWrapping="Wrap">
+                    <InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource ShortcutKey}"><TextBlock Text="↑↓" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></InlineUIContainer>
+                    <Run Text=" מעבר · "/>
+                    <InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource ShortcutKey}"><TextBlock Text="צ" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></InlineUIContainer>
+                    <Run Text=" צנזור · "/>
+                    <InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource ShortcutKey}"><TextBlock Text="ה" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></InlineUIContainer>
+                    <Run Text=" השארה"/>
+                </TextBlock>
             </StackPanel>
         </Border>
+        <!-- The rescan action, and in the rest of its row the offer to share the review's decisions
+             (Contributing): a link, or how sharing went. -->
         <Border x:Name="scanFooter" Grid.Row="3" BorderBrush="{StaticResource Divider}"
                 BorderThickness="0,1,0,0" Padding="8,4">
-            <Button x:Name="scanButton" Content="סרוק שוב" Style="{StaticResource FlatButton}"
-                    HorizontalAlignment="Right" Click="Scan_Click"
-                    ToolTip="סרוק את המסמך מחדש"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="scanButton" Grid.Column="1" Content="סרוק שוב" Style="{StaticResource FlatButton}"
+                        Margin="8,0,0,0" VerticalAlignment="Center" Click="Scan_Click"
+                        ToolTip="סרוק את המסמך מחדש"/>
+                <TextBlock x:Name="contributeSlot" VerticalAlignment="Center" TextWrapping="Wrap" IsVisibleChanged="ContributionSlot_IsVisibleChanged"
+                           Margin="4,2,0,2" Visibility="Collapsed" ToolTipService.ShowDuration="20000">
+                    <Hyperlink x:Name="contributeLink" Click="ContributeLink_Click"
+                               ToolTipService.InitialShowDelay="400" ToolTipService.ShowDuration="20000"
+                               Foreground="{StaticResource Accent}"><Run x:Name="contributeLinkText"/></Hyperlink><Run
+                        x:Name="contributeStatus" Foreground="{StaticResource SecondaryText}"/><InlineUIContainer BaselineAlignment="Center"><TextBlock x:Name="contributePreview" Visibility="Collapsed"><Run Text=" · "/><Hyperlink Click="ContributeShow_Click" Foreground="{StaticResource SecondaryText}" ToolTip="הצג בדיוק מה יישלח">הצג</Hyperlink></TextBlock></InlineUIContainer>
+                </TextBlock>
+            </Grid>
         </Border>
+
+        <!-- Opened by the share link until the user first shares: what sharing is, before anything is sent. -->
+        <Popup x:Name="contributePopup" PlacementTarget="{Binding ElementName=scanFooter}" Placement="Top"
+               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Width="360">
+            <Border FlowDirection="RightToLeft" Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource ButtonBorder}" BorderThickness="1" CornerRadius="2"
+                    Margin="6,0,6,4" Padding="14,12"
+                    TextElement.Foreground="{StaticResource Text}"
+                    TextElement.FontFamily="Segoe UI" TextElement.FontSize="12">
+                <StackPanel>
+                    <TextBlock Text="עזור לשפר את הדיוק של התוסף" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8">
+                        דיווח של ההכרעות והטעויות שמצאת מאפשר לשפר את הגרסה הבאה של התוסף.
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,4">
+                        מה נשלח: כמה מילים סביב כל שם, בלי ניקוד, וההכרעה שלך. לא המסמך, לא שמו ולא מי אתה.
+                    </TextBlock>
+                    <TextBlock Margin="0,0,0,10">
+                        <Hyperlink Click="ContributeShow_Click" Foreground="{StaticResource Accent}">הצג בדיוק מה יישלח</Hyperlink>
+                    </TextBlock>
+                    <CheckBox x:Name="shareAutomatically" Content="מעכשיו, שתף אוטומטית בסיום כל סקירה"
+                              VerticalContentAlignment="Center" Margin="0,0,0,12" Loaded="CheckBox_Loaded"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="שתף" Style="{StaticResource PrimaryButton}" Click="ContributePopupSend_Click"/>
+                        <Button Content="לא עכשיו" Style="{StaticResource FlatButton}" Click="ContributePopupClose_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>

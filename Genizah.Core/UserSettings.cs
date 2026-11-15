@@ -25,6 +25,21 @@ namespace Genizah.Core
         /// <summary>Whether the About dialog has opened by itself, on the user's first use of the add-in.</summary>
         [DataMember(Name = "about_shown")] public bool AboutShown { get; set; }
 
+        /// <summary>Whether the review pane offers, after a review, to send the user's decisions (<see cref="Contributions"/>).</summary>
+        [DataMember(Name = "offer_contributions")] public bool OfferContributions { get; set; }
+
+        /// <summary>Whether a finished review shares its decisions without asking; chosen by the user, never by default.</summary>
+        [DataMember(Name = "share_automatically")] public bool ShareAutomatically { get; set; }
+
+        /// <summary>Whether the reporting link's one-time highlight has been shown.</summary>
+        [DataMember(Name = "contribution_hint_shown")] public bool ContributionHintShown { get; set; }
+
+        /// <summary>The random id the user's contributions are sent under, or empty before the first.</summary>
+        [DataMember(Name = "install_id")] public string InstallId { get; set; }
+
+        /// <summary>A collection server to send contributions to instead of the built-in one; for testing.</summary>
+        [DataMember(Name = "contribution_endpoint", EmitDefaultValue = false)] public string ContributionEndpoint { get; set; }
+
         public UserSettings() => SetDefaults();
 
         // The serializer doesn't run constructors: a member missing from the file keeps these.
@@ -35,6 +50,7 @@ namespace Genizah.Core
         private void OnDeserialized(StreamingContext context)
         {
             if (Replacements == null) Replacements = new Dictionary<string, string>();
+            if (InstallId == null) InstallId = "";
         }
 
         private void SetDefaults()
@@ -43,6 +59,9 @@ namespace Genizah.Core
             CheckForUpdates = true;
             CheckBeforePrinting = true;
             AboutShown = false;
+            OfferContributions = true;
+            ShareAutomatically = false;
+            InstallId = "";
         }
 
         /// <summary>The settings in <paramref name="path"/>, or the defaults if it is missing or unreadable.</summary>

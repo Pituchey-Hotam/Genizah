@@ -1,4 +1,4 @@
-# The landing page owns its screenshots in site/images; the ribbon icon is copied in.
+# The landing page owns its screenshots and vector logo in site/images.
 # Deploys from master, so the page changes with releases.
 name: Pages
 
@@ -7,7 +7,6 @@ on:
     branches: [master]
     paths:
       - site/**
-      - Genizah/Resources/CensorNames.png
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -32,8 +31,6 @@ jobs:
       - name: Assemble
         run: |
           cp -r site _site
-          mkdir -p _site/images
-          cp Genizah/Resources/CensorNames.png _site/images/icon.png
 
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

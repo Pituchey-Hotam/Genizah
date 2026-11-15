@@ -24,13 +24,19 @@ namespace Genizah.Core.Tests
             Assert.True(settings.CheckForUpdates);
             Assert.True(settings.CheckBeforePrinting);
             Assert.False(settings.AboutShown);
+            Assert.True(settings.OfferContributions);
+            Assert.False(settings.ShareAutomatically);
+            Assert.False(settings.ContributionHintShown);
+            Assert.Equal("", settings.InstallId);
+            Assert.Null(settings.ContributionEndpoint);
             Assert.Empty(settings.Replacements);
         }
 
         [Fact]
         public void SavedSettingsLoadBack()
         {
-            var settings = new UserSettings { CheckForUpdates = false, CheckBeforePrinting = false, AboutShown = true };
+            var settings = new UserSettings { CheckForUpdates = false, CheckBeforePrinting = false, AboutShown = true,
+                ContributionHintShown = true };
             settings.Replacements["havaya"] = "ד'";
             settings.Save(File_);
             settings.Replacements["el"] = "קל";
@@ -40,6 +46,7 @@ namespace Genizah.Core.Tests
             Assert.False(loaded.CheckForUpdates);
             Assert.False(loaded.CheckBeforePrinting);
             Assert.True(loaded.AboutShown);
+            Assert.True(loaded.ContributionHintShown);
             Assert.Equal("ד'", loaded.Replacements["havaya"]);
             Assert.Equal("קל", loaded.Replacements["el"]);
             Assert.False(File.Exists(File_ + ".tmp"));

@@ -77,7 +77,7 @@ namespace Genizah
             RemoveClosedWindows();
             if (windows.TryGetValue(window.Hwnd, out var state)) return state;
             state = new WindowResults { Document = window.Document };
-            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
+            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות גניזה", window);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
             state.Control.ReviewRequested += (sender, args) => ReconcileDocument(state.Document);
             state.Control.ScanRequested += (sender, args) => CensorNames(state.Document, window: window);
@@ -312,7 +312,7 @@ namespace Genizah
                     await ApplyResults(state, doc, text, scored, thresholds, timings);
                     string shown = string.Join("\n", new[] { problem, notice, updateNotice }.Where(s => s != null));
                     using (timings.Measure("pane"))
-                        state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown);
+                        state.Control.ShowSearchResults(state.ResultsList, shown.Length == 0 ? null : shown, thresholds);
                     state.HasCompletedReview = true;
                 }
             }
@@ -398,7 +398,7 @@ namespace Genizah
                     SearchResult result;
                     using (timings.Measure("new_result"))
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
-                                                  verdict, before, after);
+                                                  verdict, s.Window, before, after);
                     state.ResultsList.Add(result);
                     if (WordText.ToUnicode(result.OriginalText) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
@@ -491,9 +491,9 @@ namespace Genizah
                     var state = GetResults(window);
                     ClearResults(state);
                     state.ResultsList.Add(new SearchResult(window.Document, window.Document.Range(start, end),
-                        NameInfo.ById("havaya"), 0, leave ? Verdict.Leave : Verdict.Ask, "", ""));
+                        NameInfo.ById("havaya"), 0, leave ? Verdict.Leave : Verdict.Ask, null, "", ""));
                     state.Pane.Visible = true;
-                    state.Control.ShowSearchResults(state.ResultsList, null);
+                    state.Control.ShowSearchResults(state.ResultsList, null, null);
                     state.HasCompletedReview = true;
                     RecordReview(state, true);
                     return;

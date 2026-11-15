@@ -68,12 +68,30 @@ Releases, installs, updates and CI: `docs/RELEASING.md`.
     the credits; keep its credits in step with `NOTICE`.
   - `AddInSettings`: the user's settings, in `%LOCALAPPDATA%\Genizah\settings.json`
     (`Genizah.Core/UserSettings`), shared by every version and Word build.
+  - `Contributing`, `ContributeDialog.xaml`: whenever there are eligible unsent decisions, a link in the
+    pane's footer offers to share the user's decisions with the
+    collection server (README, "Sharing decisions"); it sits beside rescan on the same row.
+    The action reads "דווח טעות אחת" or "דווח N טעויות". After the first report, a small "הצג"
+    link opens the record-by-record dialog. The first visible offer before reporting gets a
+    gentle blue highlight that fades out (`contribution_hint_shown`, once per installation).
+    Closing the pane never opens an explanation. Until the user first
+    shares (`Contributing.Explained`: an install id exists), the link opens a popup explaining
+    sharing, with the record-by-record `ContributeDialog` and a "share automatically" box
+    (`share_automatically`, off by default); after that it sends directly. A record is sent only for a decision made in the pane (`SearchResult.Revisions`)
+    that answers an ask or reverses the model, never one reversing a `censor_always` name; its
+    text is only the model's window (`ModelWindow`, from `WindowEncoder.Window`, the same slicing
+    the scan encodes). A failed send keeps its batch and ids for the retry, which the server
+    deduplicates. Sent records' hashes go to `%LOCALAPPDATA%\Genizah\contributed.json` so a rescan
+    doesn't offer them again. The server is `Contributing.BuiltInEndpoint`, or the settings'
+    `contribution_endpoint` for testing (https, or http on loopback); with neither, the pane and
+    the settings show nothing about contributions.
 - `Genizah.Core/` (netstandard2.0, and net48 so the add-in gets `SignedXml` from the framework):
   a port of the Python input pipeline the model was trained with, which isn't in this repo; the
   test vectors stand in for it. `TextNormalizer` → `NameFinder` → `WordPieceTokenizer`/
   `WindowEncoder` → `NameClassifier`. Outside the pipeline:
   `NameCensor` (makes only the base→replacement edit, keeping affixes and nikud), `WordText`, `Quote`,
-  `NameThresholds`, `ModelManifest`. For updates: `Manifests` (reads a version's signed `.vsto`
+  `NameThresholds`, `ModelManifest`, `Contributions` (which decisions become records, the wire
+  format the collection server validates, its client, and `SentLog`). For updates: `Manifests` (reads a version's signed `.vsto`
   and `.dll.manifest` after checking the signer's key; ClickOnce's algorithm names need
   registering with `CryptoConfig`), `VersionStore` (builds version folders), `Download`, `UpdateLog` (one tab-separated line per check).
 - `Genizah.Core.Tests/`: `testdata/` vectors are from the Hebrew Bible or hand-written.

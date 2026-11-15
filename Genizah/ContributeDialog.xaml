@@ -1,0 +1,61 @@
+<Window x:Class="Genizah.ContributeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="שיתוף הכרעות"
+        FlowDirection="RightToLeft"
+        FontFamily="Segoe UI" FontSize="12"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Surface}" Foreground="{DynamicResource Text}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Genizah;component/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <SolidColorBrush x:Key="Footer" Color="#FAF9F8"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Footer}"
+                BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0" Padding="20,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="ביטול" IsCancel="True"
+                        Style="{StaticResource FlatButton}" Margin="0"/>
+                <Button DockPanel.Dock="Right" Content="שתף את המסומנים" IsDefault="True" Click="Send_Click"
+                        Style="{StaticResource PrimaryButton}"/>
+                <Border/>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Margin="20,16,20,18">
+            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource SecondaryText}" Margin="0,0,0,12">
+                אלו בדיוק הנתונים שיישלחו כדי לשפר את המודל: לכל הכרעה, השם והקשר של עד 32 תווים מכל צד.
+                שם המסמך, שאר הטקסט ופרטים מזהים אינם נשלחים. אפשר להסיר את הסימון משורה כדי לא לשלוח אותה.
+            </TextBlock>
+            <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="rows" IsTabStop="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,6">
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
+                                              VerticalAlignment="Top" Margin="0,2,8,0"
+                                              Loaded="CheckBox_Loaded"/>
+                                    <StackPanel>
+                                        <TextBlock TextWrapping="Wrap" FontSize="13">
+                                            <Run Text="{Binding Left, Mode=OneWay}"/><Run Text="{Binding Target, Mode=OneWay}" FontWeight="Bold"/><Run Text="{Binding Right, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Decision}" Foreground="{StaticResource SecondaryText}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </StackPanel>
+    </DockPanel>
+</Window>
