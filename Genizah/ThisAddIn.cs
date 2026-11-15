@@ -77,7 +77,7 @@ namespace Genizah
             RemoveClosedWindows();
             if (windows.TryGetValue(window.Hwnd, out var state)) return state;
             state = new WindowResults { Document = window.Document };
-            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות", window);
+            state.Pane = CustomTaskPanes.Add(state.Control, "תוצאות גניזה", window);
             state.Control.ResultChanged += (sender, args) => RecordReview(state);
             state.Control.ReviewRequested += (sender, args) => ReconcileDocument(state.Document);
             state.Control.ScanRequested += (sender, args) => CensorNames(state.Document, window: window);

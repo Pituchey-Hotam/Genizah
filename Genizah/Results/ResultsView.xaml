@@ -192,7 +192,7 @@
                     <InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource ShortcutKey}"><TextBlock Text="צ" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></InlineUIContainer>
                     <Run Text=" צנזור · "/>
                     <InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource ShortcutKey}"><TextBlock Text="ה" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></InlineUIContainer>
-                    <Run Text=" השארה או ביטול צנזור"/>
+                    <Run Text=" השארה"/>
                 </TextBlock>
             </StackPanel>
         </Border>

@@ -378,7 +378,7 @@ namespace Genizah.Results
         /// <summary>The explanation the first share link opens, and every later one's tooltip.</summary>
         private const string ShareExplanation =
             "שתף את ההכרעות שלך כדי לשפר את התוסף עבור משתמשים אחרים.\n" +
-            "נשלחים רק כמה מילים סביב כל שם, בלי ניקוד, וההכרעה שלך.";
+            "נשלחים רק כמה מילים סביב כל שם, וההכרעה שלך.";
 
         /// <summary>
         /// Shows the footer's share slot as things stand: sending, failed, offering the decisions
