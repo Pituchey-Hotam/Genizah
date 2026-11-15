@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -392,7 +392,7 @@ namespace Genizah
                     SearchResult result;
                     using (timings.Measure("new_result"))
                         result = new SearchResult(doc, range, NameInfo.ById(s.Candidate.NameId), s.Logit,
-                                                  thresholds?.Probability(s.Logit), verdict, before, after);
+                                                  verdict, before, after);
                     state.ResultsList.Add(result);
                     if (WordText.ToUnicode(result.OriginalText) != text.Substring(s.RawStart, s.RawEnd - s.RawStart))
                         timings.RangeMismatches++;
@@ -485,7 +485,7 @@ namespace Genizah
                     var state = GetResults(window);
                     ClearResults(state);
                     state.ResultsList.Add(new SearchResult(window.Document, window.Document.Range(start, end),
-                        NameInfo.ById("havaya"), 0, null, leave ? Verdict.Leave : Verdict.Ask, "", ""));
+                        NameInfo.ById("havaya"), 0, leave ? Verdict.Leave : Verdict.Ask, "", ""));
                     state.Pane.Visible = true;
                     state.Control.ShowSearchResults(state.ResultsList, null);
                     state.HasCompletedReview = true;

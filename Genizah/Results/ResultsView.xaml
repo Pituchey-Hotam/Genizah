@@ -103,7 +103,33 @@
         </Grid.RowDefinitions>
 
         <StackPanel x:Name="reviewHeader" Margin="12,10,12,8">
+            <Border x:Name="summaryCounts" Visibility="Collapsed" Background="{StaticResource Hover}"
+                    CornerRadius="4" Padding="10,7" Margin="0,0,0,6">
+                <ItemsControl x:Name="summaryLines">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="22"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="48"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Width="6" Height="6" Fill="{StaticResource PendingMark}"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         Visibility="{Binding Pending, Converter={StaticResource Visible}}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Label}"
+                                           Foreground="{StaticResource SecondaryText}" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Count}" FontWeight="SemiBold"
+                                           FlowDirection="LeftToRight" TextAlignment="Left"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
             <TextBlock x:Name="summary" TextWrapping="Wrap"/>
+            <TextBlock x:Name="summaryNotice" TextWrapping="Wrap"
+                       Foreground="{StaticResource SecondaryText}" Visibility="Collapsed"/>
         </StackPanel>
 
         <!-- A scan's progress: its stage, a bar (moving while the stage has no count), and the count. -->
@@ -146,7 +172,7 @@
                             ToolTip="בטל צנזור (ה)"
                             Visibility="{Binding CanUndo, Converter={StaticResource Visible}}"/>
                 </StackPanel>
-                <TextBlock Text="מקלדת: ↑↓ מעבר · צ צנזור · ה השארה או ביטול צנזור"
+                <TextBlock Text="מקלדת: ↑↓ מעבר · צ צנזור · ה השארה"
                            Foreground="{StaticResource SecondaryText}" FontSize="11" Margin="0,8,0,0"
                            TextWrapping="Wrap"/>
             </StackPanel>

@@ -22,9 +22,6 @@ namespace Genizah.Results
         public NameInfo Name { get; }
         public float Logit { get; }
 
-        /// <summary>The calibrated probability that this is a divine name, or null if the thresholds file has no temperature.</summary>
-        public double? Probability { get; }
-
         /// <summary>What the model's score said to do. Fixed; <see cref="State"/> is what was done.</summary>
         public Verdict Verdict { get; }
         public ResultState State { get; private set; }
@@ -41,12 +38,11 @@ namespace Genizah.Results
         // Live COM ranges follow edits without adding bookmarks to the document or undo history.
         public Range Range { get; }
 
-        public SearchResult(Document doc, Range range, NameInfo name, float logit, double? probability, Verdict verdict, string contextBefore, string contextAfter)
+        public SearchResult(Document doc, Range range, NameInfo name, float logit, Verdict verdict, string contextBefore, string contextAfter)
         {
             Range = range.Duplicate;
             Name = name;
             Logit = logit;
-            Probability = probability;
             Verdict = verdict;
             State = verdict == Verdict.Leave ? ResultState.Left : ResultState.Pending;
             uncensoredState = State;

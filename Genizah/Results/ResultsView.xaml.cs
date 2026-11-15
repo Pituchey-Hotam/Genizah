@@ -22,6 +22,7 @@ namespace Genizah.Results
         private readonly Dictionary<GroupHeader, List<ResultItem>> groupRows = new Dictionary<GroupHeader, List<ResultItem>>();
         private List<SearchResult> results = new List<SearchResult>();
         private string notice;
+        private string summaryText = "";
 
         /// <summary>Raised after the user censors or leaves a name from the pane.</summary>
         public event EventHandler ResultChanged;
@@ -41,7 +42,9 @@ namespace Genizah.Results
         {
             ClearResults();
             ShowProgressPanel(false);
-            summary.Text = message;
+            summary.Text = summaryText = message;
+            summary.Visibility = Visibility.Visible;
+            summaryCounts.Visibility = summaryNotice.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>
@@ -120,7 +123,7 @@ namespace Genizah.Results
         {
             var selected = list.SelectedItem as ResultItem;
             return string.Join("|", progressPanel.Visibility == Visibility.Visible ? "progress" : "review",
-                scanButton.Content, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(summary.Text)),
+                scanButton.Content, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(summaryText)),
                 selected == null ? -1 : results.IndexOf(selected.Result),
                 string.Join(",", groupRows.Keys.Select(header => header.IsExpanded)),
                 Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(progressStage.Text)));
@@ -313,7 +316,21 @@ namespace Genizah.Results
                 $"הושארו: {results.Count(r => !r.IsStale && r.State == ResultState.Left)}";
             int stale = results.Count(r => r.IsStale);
             if (stale > 0) text += $" · דרושה סריקה מחדש: {stale}";
-            summary.Text = notice == null ? text : text + "\n" + notice;
+            summaryText = notice == null ? text : text + "\n" + notice;
+            int pending = results.Count(r => !r.IsStale && r.State == ResultState.Pending);
+            var lines = new List<object>
+            {
+                new { Label = "ממתינים להכרעה", Count = pending, Pending = pending > 0 },
+                new { Label = "צונזרו", Count = results.Count(r => !r.IsStale && r.State == ResultState.Censored), Pending = false },
+                new { Label = "הושארו", Count = results.Count(r => !r.IsStale && r.State == ResultState.Left), Pending = false }
+            };
+            if (stale > 0) lines.Add(new { Label = "דרושה סריקה מחדש", Count = stale, Pending = false });
+            summaryLines.ItemsSource = lines;
+            summaryCounts.Visibility = results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            summary.Text = results.Count == 0 ? "לא נמצאו שמות." : "";
+            summary.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            summaryNotice.Text = notice;
+            summaryNotice.Visibility = string.IsNullOrEmpty(notice) ? Visibility.Collapsed : Visibility.Visible;
         }
     }
 }
