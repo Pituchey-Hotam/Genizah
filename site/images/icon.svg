@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Genizah</title>
+  <!-- Document and folded corner. -->
+  <path d="M11 5H39L53 19V59H11Z" fill="#fff" stroke="#616161" stroke-width="2"/>
+  <path d="M39 5V19H53" fill="none" stroke="#616161" stroke-width="2"/>
+  <path d="M16 15H34M16 23H48M16 41H48M16 49H40" fill="none" stroke="#a0a0a0" stroke-width="2"/>
+  <path d="M16 28H48V34H16Z" fill="#262626"/>
+  <!-- White separation around the Word-blue badge. -->
+  <circle cx="48" cy="48" r="20" fill="#fff"/>
+  <circle cx="48" cy="48" r="16" fill="#185abd"/>
+  <!-- Outlined Hebrew he and geresh, independent of installed fonts. -->
+  <path d="M44 38H58V56H54V42H44ZM44 46H48V56H44ZM38 38H42L40 46H36Z" fill="#fff"/>
+</svg>
